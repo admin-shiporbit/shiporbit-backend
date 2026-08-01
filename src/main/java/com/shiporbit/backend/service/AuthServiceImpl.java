@@ -4,6 +4,7 @@ import com.shiporbit.backend.dto.SignUpRequest;
 import com.shiporbit.backend.dto.UserResponse;
 import com.shiporbit.backend.entity.Role;
 import com.shiporbit.backend.entity.Users;
+import com.shiporbit.backend.exception.EmailAlreadyExistsException;
 import com.shiporbit.backend.repository.RoleRepository;
 import com.shiporbit.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -33,7 +34,7 @@ public class AuthServiceImpl implements AuthService {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
 
         if (userRepository.existsByEmailIgnoreCase(email)) {
-            throw new IllegalArgumentException("Email is already registered");
+            throw new EmailAlreadyExistsException("Email "+email+ " is already registered with other user");
         }
 
 //        String requestedRole = request.role()
