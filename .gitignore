@@ -1,0 +1,66 @@
+######################
+## Gradle
+######################
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+######################
+## Java / compiled
+######################
+*.class
+*.log
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+######################
+## IntelliJ IDEA
+######################
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+######################
+## Eclipse / VS Code (in case teammates use them)
+######################
+.classpath
+.project
+.settings/
+bin/
+.vscode/
+
+######################
+## OS files
+######################
+.DS_Store
+Thumbs.db
+
+######################
+## Spring Boot / secrets  (IMPORTANT)
+######################
+# Never commit real credentials. Keep a committed application.yml with
+# safe/dev defaults, but ignore any local/secret override files:
+application-local.yml
+application-local.yaml
+application-local.properties
+application-secret*.yml
+application-secret*.properties
+.env
+.env.*
+
+######################
+## Logs / temp
+######################
+*.log
+logs/
+tmp/
+temp/
