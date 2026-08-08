@@ -3,6 +3,8 @@ package com.shiporbit.backend.controller;
 
 import com.shiporbit.backend.dto.SignUpRequest;
 import com.shiporbit.backend.dto.UserResponse;
+import com.shiporbit.backend.jwt.AuthResponse;
+import com.shiporbit.backend.jwt.LoginRequest;
 import com.shiporbit.backend.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +21,12 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/signup")
-    public UserResponse auth(@Valid @RequestBody SignUpRequest request) throws Exception {
+    public UserResponse signup(@Valid @RequestBody SignUpRequest request) {
         return authService.signup(request);
+    }
+
+    @PostMapping("/login")
+    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
+        return authService.login(request);
     }
 }

@@ -5,10 +5,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.View;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -18,13 +18,6 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-    private final View error;
-
-    public GlobalExceptionHandler(View error) {
-        this.error = error;
-    }
-
-
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> duplicateEmail(EmailAlreadyExistsException ex){
         String errorId = UUID.randomUUID().toString();
@@ -54,6 +47,20 @@ public class GlobalExceptionHandler {
                 ,LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> authenticationError(AuthenticationException ex) {
+        String errorId = UUID.randomUUID().toString();
+        LOGGER.warn("Authentication failed with error ID {}", errorId);
+        ErrorResponse errorResponse = new ErrorResponse(
+                errorId,
+                "Unauthorized",
+                HttpStatus.UNAUTHORIZED.value(),
+                "Invalid email or password",
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)

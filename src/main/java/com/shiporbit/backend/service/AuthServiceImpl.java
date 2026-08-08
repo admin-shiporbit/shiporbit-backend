@@ -5,30 +5,47 @@ import com.shiporbit.backend.dto.UserResponse;
 import com.shiporbit.backend.entity.Role;
 import com.shiporbit.backend.entity.Users;
 import com.shiporbit.backend.exception.EmailAlreadyExistsException;
+import com.shiporbit.backend.dto.JwtService;
+import com.shiporbit.backend.jwt.AuthResponse;
+import com.shiporbit.backend.jwt.LoginRequest;
 import com.shiporbit.backend.repository.RoleRepository;
 import com.shiporbit.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.Locale;
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
+    private final AuthenticationManager authenticationManager;
+    private final JwtService jwtService;
 
-    @Autowired
-    private RoleRepository roleRepository;
+    public AuthServiceImpl(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            RoleRepository roleRepository,
+            AuthenticationManager authenticationManager,
+            JwtService jwtService
+    ) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.roleRepository = roleRepository;
+        this.authenticationManager = authenticationManager;
+        this.jwtService = jwtService;
+    }
 
     @Override
     @Transactional
-    public UserResponse signup(SignUpRequest request) throws Exception {
+    public UserResponse signup(SignUpRequest request) {
 
 
         String email = request.email().trim().toLowerCase(Locale.ROOT);
@@ -57,9 +74,22 @@ public class AuthServiceImpl implements AuthService {
         Users savedUser = userRepository.save(user);
         return new UserResponse(
                 savedUser.getId()
-                , savedUser.getFullName()
                 , savedUser.getEmail()
+                , savedUser.getFullName()
                 , savedUser.getRole().getRole()
                 ,savedUser.isEnabled());
+    }
+
+    @Override
+    public AuthResponse login(LoginRequest request) {
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, request.password())
+        );
+
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String accessToken = jwtService.generateToken(userDetails);
+
+        return new AuthResponse(accessToken, "Bearer", jwtService.getExpiration() / 1000);
     }
 }
