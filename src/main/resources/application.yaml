@@ -25,4 +25,4 @@ logging:
     org.springframework.security: DEBUG
 jwt:
   secret: ${JWT_SECRET:EnTz5qcM2E3dGK9rRJtUismhICqcbFYpAHxvQb1sjBs=}
-  expiration: ${JWT_EXPIRATION_MS:9000000}
+  expiration: ${JWT_EXPIRATION_MS:900000}

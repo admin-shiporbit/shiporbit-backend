@@ -25,14 +25,42 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(
-                auth->auth.requestMatchers("/api/v1/auth/**","/h2-console/**").permitAll()
-                        .anyRequest().authenticated())
-                .csrf(csrf->csrf.disable())
-                .sessionManagement(sm->sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
-                .headers(hd->hd.frameOptions(fr->fr.sameOrigin()))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        http.authorizeHttpRequests(auth -> auth
+
+                        // This specific endpoint requires JWT
+                        .requestMatchers(
+                                "/api/v1/auth/me",
+                                "/api/v1/auth/logout"
+                        ).authenticated()
+
+                        // Keep all your existing auth APIs public
+                        .requestMatchers("/api/v1/auth/**", "/h2-console/**").permitAll()
+
+                        // Everything else requires authentication
+                        .anyRequest().authenticated()
+                )
+
+                .csrf(csrf -> csrf.disable())
+
+                .sessionManagement(sm ->
+                        sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                .exceptionHandling(ex ->
+                        ex.authenticationEntryPoint(
+                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
+                        )
+                )
+
+                .headers(hd ->
+                        hd.frameOptions(fr -> fr.sameOrigin())
+                )
+
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }
