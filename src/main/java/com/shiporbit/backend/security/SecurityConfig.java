@@ -1,5 +1,6 @@
 package com.shiporbit.backend.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class SecurityConfig {
 
+    @Value("app.security.enabled:true")
+    private boolean isSecuityEnabled;
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
@@ -26,42 +30,46 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        http.authorizeHttpRequests(auth -> auth
+        if (isSecuityEnabled) {
+            http.authorizeHttpRequests(auth -> auth
 
-                        // This specific endpoint requires JWT
-                        .requestMatchers(
-                                "/api/v1/auth/me",
-                                "/api/v1/auth/logout"
-                        ).authenticated()
+                            // This specific endpoint requires JWT
+                            .requestMatchers(
+                                    "/api/v1/auth/me",
+                                    "/api/v1/auth/logout"
+                            ).authenticated()
 
-                        // Keep all your existing auth APIs public
-                        .requestMatchers("/api/v1/auth/**", "/h2-console/**").permitAll()
+                            // Keep all your existing auth APIs public
+                            .requestMatchers("/api/v1/auth/**", "/h2-console/**").permitAll()
 
-                        // Everything else requires authentication
-                        .anyRequest().authenticated()
-                )
+                            // Everything else requires authentication
+                            .anyRequest().authenticated()
+                    )
 
-                .csrf(csrf -> csrf.disable())
+                    .csrf(csrf -> csrf.disable())
 
-                .sessionManagement(sm ->
-                        sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                    .sessionManagement(sm ->
+                            sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                    )
 
-                .exceptionHandling(ex ->
-                        ex.authenticationEntryPoint(
-                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
-                        )
-                )
+                    .exceptionHandling(ex ->
+                            ex.authenticationEntryPoint(
+                                    new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
+                            )
+                    )
 
-                .headers(hd ->
-                        hd.frameOptions(fr -> fr.sameOrigin())
-                )
+                    .headers(hd ->
+                            hd.frameOptions(fr -> fr.sameOrigin())
+                    )
 
-                .addFilterBefore(
-                        jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                    .addFilterBefore(
+                            jwtAuthenticationFilter,
+                            UsernamePasswordAuthenticationFilter.class
+                    );
 
+        } else {
+            http.authorizeHttpRequests(auth->auth.anyRequest().permitAll());
+        }
         return http.build();
     }
 

@@ -26,3 +26,8 @@ logging:
 jwt:
   secret: ${JWT_SECRET:EnTz5qcM2E3dGK9rRJtUismhICqcbFYpAHxvQb1sjBs=}
   expiration: ${JWT_EXPIRATION_MS:900000}
+
+#change enabled:true if authentication is required.
+app:
+  security:
+    enabled: false #change to true for dev and prod
