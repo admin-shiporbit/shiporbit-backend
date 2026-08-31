@@ -1,7 +1,7 @@
 spring:
   application:
     name: backend
-#    Enable the H2 console for local dev
+  # Enable the H2 console for local dev
   datasource:
     url: jdbc:h2:mem:shiporbit;DB_CLOSE_DELAY=1
     driver-class-name: org.h2.Driver
@@ -17,17 +17,37 @@ spring:
   sql:
     init:
       mode: always
+
 server:
   port: 8080
 
 logging:
   level:
     org.springframework.security: DEBUG
+
 jwt:
   secret: ${JWT_SECRET:EnTz5qcM2E3dGK9rRJtUismhICqcbFYpAHxvQb1sjBs=}
   expiration: ${JWT_EXPIRATION_MS:900000}
 
-#change enabled:true if authentication is required.
+# change enabled:true if authentication is required.
 app:
   security:
-    enabled: false #change to true for dev and prod
+    enabled: false # change to true for dev and prod
+    # Required when enabled=false: an existing user's email whose identity is used
+    # for every request in place of a real JWT principal (see SecurityConfig).
+    dev-user-email: "dev@shiporbit.local"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: Shiporbit Backend
+    description: Shipping aggregator API for Shiporbit. Refer https://www.shiporbit.in/ for more info.
+    version: 1.0.0

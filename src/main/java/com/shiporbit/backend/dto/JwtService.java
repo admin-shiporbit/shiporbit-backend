@@ -5,13 +5,14 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import io.jsonwebtoken.io.Decoders;
+import com.shiporbit.backend.security.ShipOrbitUserPrincipal;
 
 import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
 
 @Service
 public class JwtService {
@@ -34,11 +35,12 @@ public class JwtService {
     //----------------------------
     //2- GENERATE TOKEN
     //----------------------------
-    public String generateToken(UserDetails userDetails){
+    public String generateToken(ShipOrbitUserPrincipal userDetails){
         Instant now = Instant.now();
         return Jwts
                 .builder()
-                .subject(userDetails.getUsername())
+                .subject(userDetails.userId().toString())
+                .claim("email", userDetails.email())
                 .claim("roles",
                         userDetails.getAuthorities()
                                 .stream()
@@ -54,12 +56,15 @@ public class JwtService {
         return expiration;
     }
     //----------------------------
-    //3- EXTRACT username from JWT
+    //3- EXTRACT user ID and email from JWT
     //----------------------------
 
-    public String extractUserName(String token){
-        return extractAllClaims(token)
-                .getSubject();
+    public UUID extractUserId(String token){
+        return UUID.fromString(extractAllClaims(token).getSubject());
+    }
+
+    public String extractEmail(String token){
+        return extractAllClaims(token).get("email", String.class);
     }
     //----------------------------
     //4- EXTRACT ALL CLAIMS
@@ -77,14 +82,14 @@ public class JwtService {
 
     public boolean isTokenValid(
             String token,
-            UserDetails userDetails) {
+            ShipOrbitUserPrincipal userDetails) {
+        UUID userId = extractUserId(token);
+        String email = extractEmail(token);
 
-        String username =
-                extractUserName(token);
-
-        return username.equals(
-                userDetails.getUsername()
-        ) && !isTokenExpired(token);
+        return userId.equals(userDetails.userId())
+                && email.equalsIgnoreCase(userDetails.email())
+                && userDetails.isEnabled()
+                && !isTokenExpired(token);
     }
 
 

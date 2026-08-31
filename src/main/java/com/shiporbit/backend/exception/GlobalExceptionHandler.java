@@ -76,4 +76,47 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
+
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> unauthorizedError(UnauthorizedException ex){
+        String errorId = UUID.randomUUID().toString();
+        LOGGER.warn("Unauthorized request with error ID {}: {}", errorId, ex.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+                errorId,
+                "Unauthorized",
+                HttpStatus.UNAUTHORIZED.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+    }
+
+    @ExceptionHandler(AddressNotFoundException.class)
+    public ResponseEntity<ErrorResponse> addressNotFound(AddressNotFoundException ex) {
+        String errorId = UUID.randomUUID().toString();
+        LOGGER.warn("Address not found with error ID {}: {}", errorId, ex.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+                errorId,
+                "Not Found",
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> invalidArgument(IllegalArgumentException ex) {
+        String errorId = UUID.randomUUID().toString();
+        LOGGER.warn("Invalid request with error ID {}: {}", errorId, ex.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+                errorId,
+                "Bad Request",
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
 }

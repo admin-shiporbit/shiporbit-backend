@@ -14,7 +14,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
+import com.shiporbit.backend.security.ShipOrbitUserPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -87,7 +87,8 @@ public class AuthServiceImpl implements AuthService {
                 new UsernamePasswordAuthenticationToken(email, request.password())
         );
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        ShipOrbitUserPrincipal userDetails =
+                (ShipOrbitUserPrincipal) authentication.getPrincipal();
         String accessToken = jwtService.generateToken(userDetails);
 
         return new AuthResponse(accessToken, "Bearer", jwtService.getExpiration() / 1000);

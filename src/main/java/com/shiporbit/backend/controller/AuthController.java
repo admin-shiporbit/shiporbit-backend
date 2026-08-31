@@ -3,9 +3,11 @@ package com.shiporbit.backend.controller;
 
 import com.shiporbit.backend.dto.SignUpRequest;
 import com.shiporbit.backend.dto.UserResponse;
+import com.shiporbit.backend.exception.UnauthorizedException;
 import com.shiporbit.backend.jwt.AuthResponse;
 import com.shiporbit.backend.jwt.LoginRequest;
 import com.shiporbit.backend.service.AuthService;
+import com.shiporbit.backend.security.ShipOrbitUserPrincipal;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,12 +39,16 @@ public class AuthController {
     public ResponseEntity<?> me(
             Authentication authentication) {
 
-        return ResponseEntity.ok(
-                Map.of(
-                        "username",
-                        authentication.getName()
-                )
-        );
+        if(authentication == null){
+            throw new UnauthorizedException("No authenticated users");
+        }
+        ShipOrbitUserPrincipal principal =
+                (ShipOrbitUserPrincipal) authentication.getPrincipal();
+
+        return ResponseEntity.ok(Map.of(
+                "userId", principal.userId().toString(),
+                "email", principal.email()
+        ));
     }
 
     @PostMapping("/logout")

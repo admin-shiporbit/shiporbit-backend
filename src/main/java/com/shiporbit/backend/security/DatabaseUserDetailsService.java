@@ -3,7 +3,6 @@ package com.shiporbit.backend.security;
 import com.shiporbit.backend.entity.Users;
 import com.shiporbit.backend.repository.UserRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -25,10 +24,14 @@ public class DatabaseUserDetailsService implements UserDetailsService {
         Users user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        return User.withUsername(user.getEmail())
-                .password(user.getPasswordHash())
-                .authorities(new SimpleGrantedAuthority("ROLE_" + user.getRole().getRole()))
-                .disabled(!user.isEnabled())
-                .build();
+        return new ShipOrbitUserPrincipal(
+                user.getId(),
+                user.getEmail(),
+                user.getPasswordHash(),
+                user.isEnabled(),
+                java.util.List.of(
+                        new SimpleGrantedAuthority("ROLE_" + user.getRole().getRole())
+                )
+        );
     }
 }
