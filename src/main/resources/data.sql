@@ -58,3 +58,39 @@ VALUES ('11111111-1111-1111-1111-111111111111',
         '$2b$10$Zt.4o7NUPp.SiEY6FuZ8negF5/alTMM0VirX5OUY09Bce39/j4eV2',
         1,
         TRUE);
+
+INSERT INTO rate_card_config_delhivery (partner_code, effective_from, effective_to,
+                              volumetric_divisor, min_chargeable_weight_kg, min_lr_charge,
+                              fsc_percent, processing_charge_per_lr,
+                              rov_owner_percent, rov_owner_min_per_lr,
+                              rov_carrier_percent, rov_carrier_min_per_lr,
+                              oda_mode,
+                              floor_delivery_per_kg, floor_delivery_min_per_lr,
+                              mall_delivery_per_kg, mall_delivery_min_per_lr,
+                              csd_army_per_kg, csd_army_min_per_lr,
+                              sunday_holiday_per_lr, to_pay_per_lr, cheque_handling_per_lr,
+                              cash_handling_percent, cash_handling_min_per_lr,
+                              green_tax_per_kg, green_tax_min_per_lr,
+                              round_off_total)
+VALUES ('DELHIVERY_PTL_CFT6', '2026-01-01', NULL,
+        4500, 20, 350,
+        20, 150,
+        0.1, 150,
+        0.5, 200,
+        1, -- ODA Pincode: 1 = destination-pincode based
+        0, 0, -- floor_delivery: 0 per kg, 0 min/LR
+        4, 750, -- mall_delivery: 4/kg, min 750
+        4, 750, -- csd_army: 4/kg, min 750
+        0, 100, 300, -- sunday_holiday=0/LR, to_pay=100/LR, cheque_handling=300/LR
+        2, 300, -- cash_handling: 2%, min 300/LR
+        0.5, 100, -- green_tax: 0.5/kg, min 100
+        TRUE -- Round-off = yes
+       );
+
+INSERT INTO rate_charge_slab_delhivery (partner_code, effective_from, effective_to, slab_type, min_kg, max_kg, rate_per_kg,
+                              min_charge)
+VALUES ('DELHIVERY_PTL_CFT6', '2026-01-01', NULL, 'HANDLING', 100, 250, 0, NULL),
+       ('DELHIVERY_PTL_CFT6', '2026-01-01', NULL, 'HANDLING', 250, 400, 0, NULL),
+       ('DELHIVERY_PTL_CFT6', '2026-01-01', NULL, 'HANDLING', 400, NULL, 3, NULL),
+       ('DELHIVERY_PTL_CFT6', '2026-01-01', NULL, 'ODA', 0, 500, 4, 750),
+       ('DELHIVERY_PTL_CFT6', '2026-01-01', NULL, 'ODA', 500, NULL, 4, 750);

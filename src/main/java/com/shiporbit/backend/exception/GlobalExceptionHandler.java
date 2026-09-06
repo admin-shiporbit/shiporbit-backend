@@ -106,6 +106,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
+    @ExceptionHandler(PartnerNotServiceableException.class)
+    public ResponseEntity<ErrorResponse> partnerNotServiceable(PartnerNotServiceableException ex) {
+        String errorId = UUID.randomUUID().toString();
+        LOGGER.warn("Partner not serviceable with error ID {}: {}", errorId, ex.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+                errorId,
+                "Unprocessable Entity",
+                HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> invalidArgument(IllegalArgumentException ex) {
         String errorId = UUID.randomUUID().toString();
