@@ -122,3 +122,28 @@ CREATE TABLE rate_oda_exempt_pincode_delhivery
     exempt_type  VARCHAR(10) NOT NULL, -- 'PICKUP' or 'DELIVERY'
     UNIQUE (partner_code, pincode, exempt_type)
 );
+
+-- create a table for delivery partner
+
+CREATE TABLE SO_DELIVERY_PARTNER_LIST
+(
+    id INT PRIMARY KEY ,
+    partner_name VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- create table
+CREATE TABLE SO_DELIVEY_PIN_CODE_LIST
+(
+    id BIGSERIAL PRIMARY KEY ,
+    PinCode VARCHAR(6) NOT NULL ,
+    FK_Partner_id int NOT NULL,
+    FK_state_id int NOT NULL ,
+    District VARCHAR(100) NOT NULL,
+    IS_PREPAID BOOLEAN,
+    IS_REVERSE_Pickup BOOLEAN,
+    IS_RSPL BOOLEAN,
+    IS_COD BOOLEAN,
+    IS_CASH BOOLEAN,
+    CONSTRAINT FK_Partner_id FOREIGN KEY (FK_Partner_id) REFERENCES SO_DELIVERY_PARTNER_LIST(id),
+    CONSTRAINT FK_STATE_ID FOREIGN KEY (FK_STATE_ID) REFERENCES SO_STATES (STATE_ID)
+);

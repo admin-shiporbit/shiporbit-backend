@@ -51,7 +51,13 @@ public class SecurityConfig {
                             ).authenticated()
 
                             // Keep all your existing auth APIs public
-                            .requestMatchers("/api/v1/auth/**", "/h2-console/**","/actuator/health","/actuator/info").permitAll()
+                            .requestMatchers(
+                                    "/api/v1/auth/**",
+                                    "/h2-console/**",
+                                    "/actuator/health",
+                                    "/actuator/health/**",
+                                    "/actuator/info"
+                            ).permitAll()
 
                             // Everything else requires authentication
                             .anyRequest().authenticated()

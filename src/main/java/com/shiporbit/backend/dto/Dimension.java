@@ -12,4 +12,5 @@ public class Dimension {
     private Double height;
     private Double width;
     private Double length;
+    int boxCount;
 }

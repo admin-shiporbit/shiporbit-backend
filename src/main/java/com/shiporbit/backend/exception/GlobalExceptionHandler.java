@@ -120,6 +120,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
     }
 
+    @ExceptionHandler(DelhiveryApiException.class)
+    public ResponseEntity<ErrorResponse> delhiveryApiFailure(DelhiveryApiException ex) {
+        String errorId = UUID.randomUUID().toString();
+        LOGGER.error("Delhivery API call failed with error ID {}: {}", errorId, ex.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+                errorId,
+                "Bad Gateway",
+                HttpStatus.BAD_GATEWAY.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(errorResponse);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> invalidArgument(IllegalArgumentException ex) {
         String errorId = UUID.randomUUID().toString();
@@ -132,5 +146,20 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(DeliveryRequestException.class)
+    public ResponseEntity<ErrorResponse> deliveryRequestxception(DeliveryRequestException errorResponse) {
+        String errorId = UUID.randomUUID().toString();
+        LOGGER.error("Delivery request with error ID {}: {}", errorId, errorResponse);
+        ErrorResponse response =
+                new ErrorResponse(
+                        errorId,
+                        "Invalid Request",
+                        HttpStatus.BAD_REQUEST.value(),
+                        errorResponse.getMessage(),
+                        LocalDateTime.now()
+                        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 }
