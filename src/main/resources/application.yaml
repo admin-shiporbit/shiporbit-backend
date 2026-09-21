@@ -71,3 +71,18 @@ rate-aggregator:
     login-endpoint: /ums/login
     pincode-endpoint: /pincode-service
     ratecalculator-endpoint: /freight/estimate
+payment:
+  razorpay:
+    key-id: ${RAZORPAY_KEY_ID}
+    key-secret: ${RAZORPAY_KEY_SECRET}
+  payu:
+    merchant-key: ${PAYU_MERCHANT_KEY:}
+    merchant-salt: ${PAYU_MERCHANT_SALT:}
+    # PayU's test/sandbox host. Switch to https://secure.payu.in for production via
+    # PAYU_BASE_URL once real merchant credentials are issued.
+    base-url: ${PAYU_BASE_URL:https://test.payu.in}
+    payment-endpoint: /_payment
+    # PayU posts the payment result straight to this backend endpoint (see
+    # PaymentCallbackController) - both success and failure use the same URL today.
+    success-url: ${PAYU_SUCCESS_URL:http://localhost:8080/api/v1/payments/payu/callback}
+    failure-url: ${PAYU_FAILURE_URL:http://localhost:8080/api/v1/payments/payu/callback}
