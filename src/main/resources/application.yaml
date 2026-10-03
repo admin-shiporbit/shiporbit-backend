@@ -95,3 +95,14 @@ rate-aggregator:
     shipper-city: ${UPS_SHIPPER_CITY:Noida}
     connect-timeout-seconds: 5
     read-timeout-seconds: 15
+  dhl:
+    # Leave key/secret/account empty to disable DHL (it's then skipped as not serviceable).
+    api-key: ${DHL_API_KEY:}
+    api-secret: ${DHL_API_SECRET:}
+    account-number: ${DHL_ACCOUNT_NUMBER:}
+    # .../mydhlapi/test = test (500 calls/day); .../mydhlapi = production
+    router-url: ${DHL_BASE_URL:https://express.api.dhl.com/mydhlapi/test}
+    rates-endpoint: /rates
+    shipper-city: ${DHL_SHIPPER_CITY:Noida}
+    connect-timeout-seconds: 5
+    read-timeout-seconds: 15

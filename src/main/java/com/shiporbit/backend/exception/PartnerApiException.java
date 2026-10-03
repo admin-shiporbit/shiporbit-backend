@@ -56,6 +56,11 @@ public class PartnerApiException extends RuntimeException {
         if (body.get("error") instanceof Map<?, ?> error && error.get("message") != null) {
             return error.get("message").toString();
         }
+        // DHL MyDHL (RFC 7807 style): {"title", "detail": "...", "message": "Bad request", "status"}
+        // "message" there is only the generic status text, so prefer "detail".
+        if (body.get("detail") != null) {
+            return body.get("detail").toString();
+        }
         // ShreeMurti (and most flat error shapes): {"status_code", "message": "...", "trace_id"}
         if (body.get("message") != null) {
             return body.get("message").toString();

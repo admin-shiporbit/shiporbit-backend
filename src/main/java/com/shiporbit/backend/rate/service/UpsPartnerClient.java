@@ -40,7 +40,7 @@ import java.util.UUID;
  *  - destinationState       (2-char state/province code, e.g. "NY")
  *  - destinationAddressLine (defaults to "NA")
  *  - residential            (boolean, default false)
- *  - serviceCode            (e.g. "65" Saver, "07" Express). If set, rates only that
+ *  - upsServiceCode         (e.g. "65" Saver, "07" Express). If set, rates only that
  *                           service ("Rate"); otherwise shops all services ("Shop")
  *                           and returns the cheapest.
  *  - originCity             (defaults to rate-aggregator.ups.shipper-city)
@@ -88,7 +88,7 @@ public class UpsPartnerClient implements DeliveryPartnerClient {
 
     @Override
     public RateResponse getRate(RequestParamRecord request) {
-        String serviceCode = option(request, "serviceCode", null);
+        String serviceCode = option(request, "upsServiceCode", null);
         String requestOption = serviceCode == null ? "Shop" : "Rate";
         LOGGER.debug("Fetching UPS rate ({}): {} -> {}, weight={}g", requestOption,
                 request.sourcePinCode(), destinationCountry(request), request.weight());
