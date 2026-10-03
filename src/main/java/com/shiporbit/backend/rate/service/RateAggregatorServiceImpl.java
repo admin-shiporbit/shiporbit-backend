@@ -64,11 +64,19 @@ public class RateAggregatorServiceImpl implements RateAggregatorService {
     }
 
 
+    // International requests (partnerOptions.destinationCountry other than IN, used by
+    // UPS) carry a foreign postal code, so the 6-digit Indian PIN rule doesn't apply.
+    private boolean isInternational(RequestParamRecord request) {
+        Object country = request.partnerOptions().get("destinationCountry");
+        return country != null && !country.toString().isBlank()
+                && !"IN".equalsIgnoreCase(country.toString().trim());
+    }
+
     @Override
     public void validateRequest(RequestParamRecord request) {
         if(request.sourcePinCode().length() != 6) {
             throw new DeliveryRequestException("Source pin code should be only 6 digits",new Exception());
-        } else if(request.destinationPinCode().length() != 6) {
+        } else if(!isInternational(request) && request.destinationPinCode().length() != 6) {
             throw new DeliveryRequestException("Destination pin code should be only 6 digits",new Exception());
         } else if(request.weight()<=0.0){
             throw new DeliveryRequestException("Weight should be greater than 0",new Exception());

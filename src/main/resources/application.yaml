@@ -79,3 +79,19 @@ rate-aggregator:
     ratecalculator-endpoint: /gateway/ure/api/external/rate-calculation/calculate/v2
     signin-type: EMAIL
     api-key: ${SHREEMURTI_API_KEY}
+  ups:
+    # Leave client id/secret empty to disable UPS (it's then skipped as not serviceable).
+    client-id: ${UPS_CLIENT_ID:}
+    client-secret: ${UPS_CLIENT_SECRET:}
+    account-number: ${UPS_ACCOUNT_NUMBER:}
+    # https://wwwcie.ups.com = test (CIE); https://onlinetools.ups.com = production
+    router-url: ${UPS_BASE_URL:https://wwwcie.ups.com}
+    token-endpoint: /security/v1/oauth/token
+    rating-endpoint: /api/rating/{version}/{requestoption}
+    api-version: v2409
+    transaction-source: shiporbit
+    shipper-name: ShipOrbit
+    shipper-address-line: ${UPS_SHIPPER_ADDRESS_LINE:NA}
+    shipper-city: ${UPS_SHIPPER_CITY:Noida}
+    connect-timeout-seconds: 5
+    read-timeout-seconds: 15
