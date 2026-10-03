@@ -2,10 +2,13 @@ package com.shiporbit.backend.rate.service;
 
 import com.shiporbit.backend.rate.dto.request.RequestParamRecord;
 import com.shiporbit.backend.rate.dto.response.RateResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 
 public class MarkupPartnerClient implements DeliveryPartnerClient {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MarkupPartnerClient.class);
     private static final BigDecimal MARKUP = new BigDecimal("1.10");
     private final DeliveryPartnerClient delegate;
 
@@ -21,7 +24,7 @@ public class MarkupPartnerClient implements DeliveryPartnerClient {
 
     public RateResponse getRate(RequestParamRecord r) {
         RateResponse rate = delegate.getRate(r);
-        return new RateResponse(
+        RateResponse markedUp = new RateResponse(
                 rate.partnerCode(), rate.partnerName(),
                 rate.baseFreight().multiply(MARKUP),
                 rate.fuelHike().multiply(MARKUP),
@@ -32,5 +35,7 @@ public class MarkupPartnerClient implements DeliveryPartnerClient {
                 rate.gst().multiply(MARKUP),
                 rate.finalFreight().multiply(MARKUP)
         );
+        LOGGER.debug("Applied {}x markup to {}: {} -> {}", MARKUP, rate.partnerCode(), rate.finalFreight(), markedUp.finalFreight());
+        return markedUp;
     }
 }

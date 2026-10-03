@@ -1,11 +1,14 @@
 package com.shiporbit.backend.rate.service;
 
-import com.shiporbit.backend.exception.DelhiveryApiException;
+import com.shiporbit.backend.exception.PartnerApiException;
 import com.shiporbit.backend.rate.auth.CachingTokenProvider;
 import com.shiporbit.backend.rate.auth.DelhiveryTokenFetcher;
 import com.shiporbit.backend.rate.dto.request.RequestParamRecord;
 import com.shiporbit.backend.rate.dto.response.RateResponse;
 import com.shiporbit.backend.rate.routing.DelhiveryConfigProperties;
+import com.shiporbit.backend.rate.util.CurlLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -18,6 +21,8 @@ import java.util.Map;
 
 @Component
 public class DelhiveryPartnerClient implements DeliveryPartnerClient {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DelhiveryPartnerClient.class);
 
     private final RestClient delhiveryClient;
     private final DelhiveryConfigProperties delhiveryConfigProperties;
@@ -54,26 +59,39 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
 
     @Override
     public RateResponse getRate(RequestParamRecord request) {
-        String token = tokenProvider.getValidToken();
+        LOGGER.debug("Fetching Delhivery rate: {} -> {}, weight={}g", request.sourcePinCode(), request.destinationPinCode(), request.weight());
+        String token = tokenProvider.getValidToken().get("token");
 
         Map<String, Object> requestBody = buildRequestBody(request);
+        String url = delhiveryConfigProperties.routerUrl() + delhiveryConfigProperties.ratecalculatorEndpoint();
+        LOGGER.debug("Outgoing Delhivery rate-calculator request:\n{}", CurlLogger.toCurl("POST", url,
+                Map.of("Content-Type", "application/json", "Accept", "application/json", "Authorization", "Bearer " + token),
+                requestBody));
         Map response;
         try {
             response = delhiveryClient.post()
                     .uri(delhiveryConfigProperties.ratecalculatorEndpoint())
                     .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
                     .header("Authorization", "Bearer " + token)
                     .body(requestBody)
                     .retrieve()
                     .body(Map.class);
         } catch (HttpStatusCodeException e) {
-            throw DelhiveryApiException.from(e);
+            throw PartnerApiException.from(e, "Delhivery");
         } catch (RestClientException e) {
-            throw new DelhiveryApiException("Unable to connect to Delhivery freight-estimate API", e, HttpStatus.BAD_GATEWAY.value());
+            throw new PartnerApiException("Unable to connect to Delhivery freight-estimate API", e, HttpStatus.BAD_GATEWAY.value());
         }
-        return mapToRateResponse(response);
+        RateResponse rateResponse = mapToRateResponse(response);
+        LOGGER.debug("Delhivery rate fetched: finalFreight={}", rateResponse.finalFreight());
+        return rateResponse;
     }
 
+    // Confirmed final contract (2026-10-01): weight_g and inv_amount are sent as
+    // strings (not numbers), and two fields beyond the common RequestParamRecord ones
+    // are required - freight_mode (request.freightMode(), e.g. "fod") and pt, which
+    // duplicates payment_mode's value (Delhivery's own API asks for it as a separate
+    // field - not something we can collapse away).
     private Map<String, Object> buildRequestBody(RequestParamRecord request) {
         var dimension = request.dimension();
         Map<String, Object> dimensionEntry = Map.of(
@@ -83,15 +101,17 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
                 "box_count", dimension.getBoxCount()
         );
 
-        return Map.of(
-                "source_pin", request.sourcePinCode(),
-                "consignee_pin", request.destinationPinCode(),
-                "cheque_payment", request.chequePayment(),
-                "rov_insurance", request.isRovInsurance(),
-                "weight_g", request.weight(),
-                "payment_mode", request.paymentMode(),
-                "inv_amount", request.inventoryAmout(),
-                "dimensions", List.of(dimensionEntry)
+        return Map.ofEntries(
+                Map.entry("source_pin", request.sourcePinCode()),
+                Map.entry("consignee_pin", request.destinationPinCode()),
+                Map.entry("cheque_payment", request.chequePayment()),
+                Map.entry("rov_insurance", request.isRovInsurance()),
+                Map.entry("weight_g", String.valueOf(request.weight())),
+                Map.entry("payment_mode", request.paymentMode()),
+                Map.entry("inv_amount", String.valueOf(request.inventoryAmout())),
+                Map.entry("freight_mode", request.freightMode()),
+                Map.entry("pt", request.paymentMode()),
+                Map.entry("dimensions", List.of(dimensionEntry))
         );
     }
 

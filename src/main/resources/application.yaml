@@ -71,3 +71,11 @@ rate-aggregator:
     login-endpoint: /ums/login
     pincode-endpoint: /pincode-service
     ratecalculator-endpoint: /freight/estimate
+  shreemurti:
+    username: ${SHREEMURTI_USERNAME}
+    password: ${SHREEMURTI_PASSWORD}
+    router-url: https://apis.innofulfill.com
+    login-endpoint: /auth/login
+    ratecalculator-endpoint: /gateway/ure/api/external/rate-calculation/calculate/v2
+    signin-type: EMAIL
+    api-key: ${SHREEMURTI_API_KEY}

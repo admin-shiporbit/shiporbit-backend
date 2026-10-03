@@ -120,10 +120,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
     }
 
-    @ExceptionHandler(DelhiveryApiException.class)
-    public ResponseEntity<ErrorResponse> delhiveryApiFailure(DelhiveryApiException ex) {
+    @ExceptionHandler(PartnerApiException.class)
+    public ResponseEntity<ErrorResponse> partnerApiFailure(PartnerApiException ex) {
         String errorId = UUID.randomUUID().toString();
-        LOGGER.error("Delhivery API call failed with error ID {}: {}", errorId, ex.getMessage());
+        LOGGER.error("Partner API call failed with error ID {}: {}", errorId, ex.getMessage());
         ErrorResponse errorResponse = new ErrorResponse(
                 errorId,
                 "Bad Gateway",

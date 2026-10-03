@@ -30,10 +30,12 @@ public class RateAggregatorServiceImpl implements RateAggregatorService {
     public RateResponse getRate(String partnerCode, RequestParamRecord request) {
         DeliveryPartnerClient client = clientsByCode.get(partnerCode);
         if (client == null) {
+            LOGGER.warn("Rate requested for unknown partner code {}", partnerCode);
             throw new IllegalArgumentException("Unknown partner " + partnerCode);
         }
 
         if (!client.isServiceable(request)) {
+            LOGGER.warn("Partner {} is not serviceable for the request {}", partnerCode, request);
             throw new IllegalStateException("Service is not available for the route");
         }
 
@@ -42,17 +44,22 @@ public class RateAggregatorServiceImpl implements RateAggregatorService {
 
     @Override
     public Map<String, RateResponse> compareRates(RequestParamRecord request) {
+        LOGGER.debug("Comparing rates across {} partner(s): {}", clientsByCode.size(), clientsByCode.keySet());
         Map<String, RateResponse> rateResponses = new LinkedHashMap<>();
         for (DeliveryPartnerClient client : clientsByCode.values()) {
             try {
                 if (client.isServiceable(request)) {
-
-                    rateResponses.put(client.partnerCode(), client.getRate(request));
+                    RateResponse rateResponse = client.getRate(request);
+                    rateResponses.put(client.partnerCode(), rateResponse);
+                    LOGGER.debug("Partner {} returned a quote: finalFreight={}", client.partnerCode(), rateResponse.finalFreight());
+                } else {
+                    LOGGER.debug("Partner {} is not serviceable for the request", client.partnerCode());
                 }
             } catch (Exception e) {
                 LOGGER.warn("Partner {} is not available for the request {}", client.partnerCode(), request, e);
             }
         }
+        LOGGER.debug("Rate comparison done, {}/{} partner(s) returned a quote", rateResponses.size(), clientsByCode.size());
         return rateResponses;
     }
 
