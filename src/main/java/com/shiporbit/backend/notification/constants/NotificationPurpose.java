@@ -11,7 +11,8 @@ public enum NotificationPurpose {
     OUT_FOR_DELIVERY(2, 3, "Order Out For Delivery"),
     DELIVERED(2, 4, "Order Delivered"),
     SIGN_UP(1, 2, "Sign Up OTP"),
-    PASSWORD_RESET(1, 3, "Password Reset OTP");
+    PASSWORD_RESET(1, 3, "Password Reset OTP"),
+    WELCOME(3, 1, "Welcome Email");
 
     private final int id;
     private final int requestType;

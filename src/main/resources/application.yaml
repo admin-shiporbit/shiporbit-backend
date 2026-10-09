@@ -101,3 +101,4 @@ notification:
     from: ${MAIL_FROM:no-reply@shiporbit.in}
     from-name: ShipOrbit
     reply-to: ${MAIL_REPLY_TO:}
+    parallelism: 4 # concurrent SMTP sends; keep <= 5 for Gmail
