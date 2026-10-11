@@ -15,12 +15,12 @@ import org.hibernate.type.SqlTypes;
 @Getter
 @Setter
 public class DeliveryPartnerEntity {
+    // V1: "id INT PRIMARY KEY" with no sequence; ids are assigned in the seed migrations (1-14).
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(nullable = false)
-    private Long id;
+    @Column(name = "id", nullable = false)
+    private Integer id;
 
-    @Column(name = "partnerName", nullable = false, unique = true, length = 50)
+    @Column(name = "partner_name", nullable = false, unique = true, length = 50)
     private String partnerName;
 
 }

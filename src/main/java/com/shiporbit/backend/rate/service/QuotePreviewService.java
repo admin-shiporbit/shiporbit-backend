@@ -41,7 +41,7 @@ public class QuotePreviewService {
 
     public QuotePreview preview(QuoteRequest request) {
         Map<Integer, String> partnerNames = partnerRepo.findAll().stream()
-                .collect(Collectors.toMap(p -> p.getId().intValue(), DeliveryPartnerEntity::getPartnerName));
+                .collect(Collectors.toMap(DeliveryPartnerEntity::getId, DeliveryPartnerEntity::getPartnerName));
         PartnerFilter.requireKnown(request.partners(), partnerNames.values());
 
         List<ServiceWeight> services = serviceRepo.findByEnabledTrue().stream()

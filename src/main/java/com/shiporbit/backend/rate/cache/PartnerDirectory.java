@@ -28,12 +28,11 @@ public class PartnerDirectory {
         this.partnerRepo = partnerRepo;
     }
 
-    /** DeliveryPartnerEntity.id is Long but the column is INT, hence intValue(). */
     @Cacheable(RateCacheConfig.PARTNER_NAMES)
     @Transactional(readOnly = true)
     public Map<Integer, String> names() {
         LOGGER.debug("Rate-card cache MISS: loading partner names from DB");
         return Map.copyOf(partnerRepo.findAll().stream()
-                .collect(Collectors.toMap(p -> p.getId().intValue(), DeliveryPartnerEntity::getPartnerName)));
+                .collect(Collectors.toMap(DeliveryPartnerEntity::getId, DeliveryPartnerEntity::getPartnerName)));
     }
 }

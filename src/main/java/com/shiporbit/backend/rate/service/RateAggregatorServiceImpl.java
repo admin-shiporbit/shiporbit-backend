@@ -5,8 +5,10 @@ import com.shiporbit.backend.rate.dto.request.RequestParamRecord;
 import com.shiporbit.backend.rate.dto.response.RateResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,9 +22,10 @@ public class RateAggregatorServiceImpl implements RateAggregatorService {
 
     private final Map<String, DeliveryPartnerClient> clientsByCode;
 
-    public RateAggregatorServiceImpl(List<DeliveryPartnerClient> clients) {
+    public RateAggregatorServiceImpl(List<DeliveryPartnerClient> clients,
+                                     @Value("${shiporbit.rates.margin-percent:10}") BigDecimal marginPercent) {
         this.clientsByCode = clients.stream()
-                .map(MarkupPartnerClient::new)
+                .map(client -> (DeliveryPartnerClient) new MarkupPartnerClient(client, marginPercent))
                 .collect(Collectors.toMap(DeliveryPartnerClient::partnerCode, Function.identity()));
     }
 

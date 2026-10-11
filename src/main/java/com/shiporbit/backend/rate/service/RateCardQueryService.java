@@ -108,9 +108,9 @@ public class RateCardQueryService {
         return row == null ? null : PincodeView.from(row, stateNames.get(row.getStateId()));
     }
 
-    /** DeliveryPartnerEntity.id is Long in Java but INT in the DB; key by Integer to match partnerId. */
+    /** Partner id -> name. */
     private Map<Integer, String> partnerNames() {
         return partnerRepo.findAll().stream()
-                .collect(Collectors.toMap(p -> p.getId().intValue(), DeliveryPartnerEntity::getPartnerName));
+                .collect(Collectors.toMap(DeliveryPartnerEntity::getId, DeliveryPartnerEntity::getPartnerName));
     }
 }
