@@ -1,6 +1,5 @@
 package com.shiporbit.backend.rate.service;
 
-import com.shiporbit.backend.entity.DeliveryPartnerEntity;
 import com.shiporbit.backend.rate.core.WeightRules;
 import com.shiporbit.backend.rate.engine.ChargeRule;
 import com.shiporbit.backend.rate.engine.PartnerLane;
@@ -21,7 +20,11 @@ import com.shiporbit.backend.rate.repository.RateChargeRuleRepository;
 import com.shiporbit.backend.rate.repository.RateServiceRepository;
 import com.shiporbit.backend.rate.repository.RateSlabRepository;
 import com.shiporbit.backend.rate.repository.ZoneMapRepository;
-import com.shiporbit.backend.repository.DeliveryPartnerRepository;
+import com.shiporbit.backend.rate.cache.PartnerDirectory;
+import com.shiporbit.backend.rate.cache.RateCacheConfig;
+import org.springframework.cache.annotation.Cacheable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,11 +43,16 @@ import java.util.stream.Collectors;
  * Reads rate-card tables and turns them into immutable engine records.
  * Query count is fixed, whatever the number of services:
  * services, partners, ACTIVE cards, slabs, rules (5) + pincodes, zones (2) per lane.
- * Step 6 puts a Caffeine cache in front of servicesOn(date).
+ * Results are cached (RateCacheConfig): servicesOn by date, lanes by origin/destination;
+ * partner names via PartnerDirectory.
+ * Everything returned is immutable, so cached values can be shared safely.
+ * After changing rate data, call RateCardCacheService.evictAll().
  */
 @Service
 @Transactional(readOnly = true)
 public class RateCardLoader {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RateCardLoader.class);
 
     private final RateServiceRepository serviceRepo;
     private final RateCardRepository cardRepo;
@@ -52,26 +60,29 @@ public class RateCardLoader {
     private final RateChargeRuleRepository ruleRepo;
     private final PartnerPincodeRepository pincodeRepo;
     private final ZoneMapRepository zoneRepo;
-    private final DeliveryPartnerRepository partnerRepo;
+    private final PartnerDirectory partnerDirectory;
 
     public RateCardLoader(RateServiceRepository serviceRepo, RateCardRepository cardRepo, RateSlabRepository slabRepo,
                           RateChargeRuleRepository ruleRepo, PartnerPincodeRepository pincodeRepo,
-                          ZoneMapRepository zoneRepo, DeliveryPartnerRepository partnerRepo) {
+                          ZoneMapRepository zoneRepo, PartnerDirectory partnerDirectory) {
         this.serviceRepo = serviceRepo;
         this.cardRepo = cardRepo;
         this.slabRepo = slabRepo;
         this.ruleRepo = ruleRepo;
         this.pincodeRepo = pincodeRepo;
         this.zoneRepo = zoneRepo;
-        this.partnerRepo = partnerRepo;
+        this.partnerDirectory = partnerDirectory;
     }
 
     /** One enabled service and its ACTIVE card on the date (card null = none active). */
     public record LoadedService(ServiceInfo service, RateCardSnapshot card) { }
 
-    /** Every enabled service with its ACTIVE card on the date, sorted by partner id, service code. */
+    /** Every enabled service with its ACTIVE card on the date, sorted by partner id, service code. Cached per date. */
+    @Cacheable(RateCacheConfig.SERVICES)
     public List<LoadedService> servicesOn(LocalDate date) {
-        Map<Integer, String> partnerNames = partnerNames();
+        // Logged only on a cache miss: if this line is absent for a quote, cards came from the cache.
+        LOGGER.debug("Rate-card cache MISS: loading services and ACTIVE cards for {} from DB", date);
+        Map<Integer, String> partnerNames = partnerDirectory.names();   // other bean -> goes through the cache
         Map<Long, RateCardEntity> cardByService = cardRepo.findAllActiveOn(date).stream()
                 .collect(Collectors.toMap(RateCardEntity::getServiceId, Function.identity()));
 
@@ -94,14 +105,15 @@ public class RateCardLoader {
                 .toList();
     }
 
-    /** SO_DELIVERY_PARTNER_LIST id -> name (14 rows). DeliveryPartnerEntity.id is Long but the column is INT. */
+    /** SO_DELIVERY_PARTNER_LIST id -> name. Delegates to the cached PartnerDirectory. */
     public Map<Integer, String> partnerNames() {
-        return partnerRepo.findAll().stream()
-                .collect(Collectors.toMap(p -> p.getId().intValue(), DeliveryPartnerEntity::getPartnerName));
+        return partnerDirectory.names();     // cached in PartnerDirectory
     }
 
-    /** Pincode flags and zone keys for origin -> destination, per partner. Two queries. */
+    /** Pincode flags and zone keys for origin -> destination, per partner. Two queries. Cached per lane. */
+    @Cacheable(RateCacheConfig.LANES)
     public Map<Integer, PartnerLane> lanes(String origin, String destination) {
+        LOGGER.debug("Rate-card cache MISS: loading lane {} -> {} from DB", origin, destination);
         Map<Integer, Map<String, PincodeInfo>> pins = new HashMap<>();
         for (PartnerPincodeEntity p : pincodeRepo.findByIdPincodeIn(Set.copyOf(List.of(origin, destination)))) {
             pins.computeIfAbsent(p.getId().getPartnerId(), k -> new HashMap<>()).put(p.getId().getPincode(), toPincode(p));
@@ -119,7 +131,7 @@ public class RateCardLoader {
             Map<String, PincodeInfo> p = pins.getOrDefault(id, Map.of());
             lanes.put(id, new PartnerLane(p.get(origin), p.get(destination), keys.getOrDefault(id, Map.of())));
         }
-        return lanes;
+        return Map.copyOf(lanes);
     }
 
     // ---- entity -> engine record mapping ----

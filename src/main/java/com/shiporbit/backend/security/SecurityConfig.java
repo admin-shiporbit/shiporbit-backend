@@ -62,6 +62,9 @@ public class SecurityConfig {
                             // Notification test endpoints send real email: admins only
                             .requestMatchers("/api/v1/notifications/test/**").hasRole("ADMIN")
 
+                            // Clearing rate-card caches affects every quote: admins only
+                            .requestMatchers("/api/v1/rate-cards/cache/**").hasRole("ADMIN")
+
                             // Everything else requires authentication
                             .anyRequest().authenticated()
                     )

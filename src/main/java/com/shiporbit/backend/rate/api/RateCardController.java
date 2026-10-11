@@ -3,6 +3,7 @@ package com.shiporbit.backend.rate.api;
 import com.shiporbit.backend.rate.dto.response.RateCardViews.CardView;
 import com.shiporbit.backend.rate.dto.response.RateCardViews.LaneView;
 import com.shiporbit.backend.rate.dto.response.RateCardViews.ServiceView;
+import com.shiporbit.backend.rate.cache.RateCardCacheService;
 import com.shiporbit.backend.rate.service.RateCardQueryService;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,9 +29,18 @@ import java.util.List;
 public class RateCardController {
 
     private final RateCardQueryService queryService;
+    private final RateCardCacheService cacheService;
 
-    public RateCardController(RateCardQueryService queryService) {
+    public RateCardController(RateCardQueryService queryService, RateCardCacheService cacheService) {
         this.queryService = queryService;
+        this.cacheService = cacheService;
+    }
+
+    /** Clears the rate-card caches so DB changes apply to the next quote. ADMIN only (SecurityConfig). */
+    @PostMapping("/cache/evict")
+    public ResponseEntity<Void> evictCache() {
+        cacheService.evictAll();
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/services")
