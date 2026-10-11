@@ -59,6 +59,9 @@ public class SecurityConfig {
                                     "/actuator/info"
                             ).permitAll()
 
+                            // Notification test endpoints send real email: admins only
+                            .requestMatchers("/api/v1/notifications/test/**").hasRole("ADMIN")
+
                             // Everything else requires authentication
                             .anyRequest().authenticated()
                     )

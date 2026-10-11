@@ -13,6 +13,21 @@ spring:
   sql:
     init:
       mode: never
+  mail:
+    host: ${MAIL_HOST:smtp.zoho.in}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:no-reply@shiporbit.in}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 server:
   port: 8080
@@ -106,3 +121,12 @@ rate-aggregator:
     shipper-city: ${DHL_SHIPPER_CITY:Noida}
     connect-timeout-seconds: 5
     read-timeout-seconds: 15
+
+notification:
+  email:
+    enabled: ${NOTIFICATION_EMAIL_ENABLED:true}
+    provider: smtp # smtp | ses (ses not implemented yet)
+    from: ${MAIL_FROM:no-reply@shiporbit.in}
+    from-name: ShipOrbit
+    reply-to: ${MAIL_REPLY_TO:}
+    parallelism: 4 # concurrent SMTP sends; keep <= 5 for Gmail

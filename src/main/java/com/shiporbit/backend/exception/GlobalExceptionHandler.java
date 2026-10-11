@@ -162,4 +162,18 @@ public class GlobalExceptionHandler {
                         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
+    @ExceptionHandler(NotificationException.class)
+    public ResponseEntity<ErrorResponse> notificationException (NotificationException errorResponse) {
+        String errorId = UUID.randomUUID().toString();
+        LOGGER.error("Notification request failed with response {}: {}", errorId, errorResponse);
+        ErrorResponse response =
+                new ErrorResponse(
+                        errorId,
+                        "Notification Request Exception",
+                        HttpStatus.BAD_REQUEST.value(),
+                        errorResponse.getMessage(),
+                        LocalDateTime.now()
+                );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
 }
