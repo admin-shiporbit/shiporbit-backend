@@ -12,6 +12,7 @@ import com.shiporbit.backend.rate.engine.CalculatorRegistry;
 import com.shiporbit.backend.rate.engine.PartnerLane;
 import com.shiporbit.backend.rate.engine.ServiceInfo;
 import com.shiporbit.backend.rate.entity.DataStatus;
+import com.shiporbit.backend.rate.provider.LivePartnerQuoteProvider;
 import com.shiporbit.backend.rate.service.RateCardLoader.LoadedService;
 import org.springframework.stereotype.Service;
 
@@ -22,13 +23,18 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 /**
- * Prices one request against every enabled rate-card service (optionally filtered by partner name).
- * Load (fixed number of queries) -> calculator per pricing model -> group by partner, mark cheapest.
- * Live partner APIs are not included yet (step 5 adapters).
+ * Prices one request against every partner (optionally filtered by partner name):
+ * <ul>
+ *   <li>Partners with a live rate API (LivePartnerQuoteProvider: Delhivery, Shree Maruti) are quoted
+ *       through that API, in parallel, and their rate-card services are skipped.</li>
+ *   <li>Every other partner is priced from its ACTIVE rate card (calculator per pricing model).</li>
+ * </ul>
+ * Results are merged, grouped by partner (partner id order) and the cheapest is marked.
  */
 @Service
 public class RateQuoteService {
@@ -37,22 +43,31 @@ public class RateQuoteService {
 
     private final RateCardLoader loader;
     private final CalculatorRegistry registry;
+    private final LivePartnerQuoteProvider liveProvider;
 
-    public RateQuoteService(RateCardLoader loader, CalculatorRegistry registry) {
+    public RateQuoteService(RateCardLoader loader, CalculatorRegistry registry, LivePartnerQuoteProvider liveProvider) {
         this.loader = loader;
         this.registry = registry;
+        this.liveProvider = liveProvider;
     }
 
     public QuoteResponse quote(QuoteRequest request) {
+        Map<Integer, String> partnerNames = loader.partnerNames();
+        PartnerFilter.requireKnown(request.partners(), partnerNames.values());
+        Set<Integer> livePartners = liveProvider.livePartnerIds();
+
         List<LoadedService> services = loader.servicesOn(request.pickupDate()).stream()
+                .filter(s -> !livePartners.contains(s.service().partnerId()))
                 .filter(s -> s.service().partnerName() != null && request.includesPartner(s.service().partnerName()))
                 .toList();
         Map<Integer, PartnerLane> lanes = services.isEmpty() ? Map.of()
                 : loader.lanes(request.originPincode(), request.destinationPincode());
 
-        List<QuoteResult> results = services.stream()
+        List<QuoteResult> results = new ArrayList<>(liveProvider.quote(request, partnerNames));
+        services.stream()
                 .map(s -> price(s, request, lanes.getOrDefault(s.service().partnerId(), PartnerLane.EMPTY)))
-                .toList();
+                .forEach(results::add);
+        results.sort(Comparator.comparing(QuoteResult::partnerId).thenComparing(QuoteResult::serviceCode));
         return toResponse(request, results);
     }
 

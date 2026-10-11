@@ -36,7 +36,7 @@ public record QuoteRequest(
         @NotNull @PositiveOrZero @Digits(integer = 10, fraction = 2) BigDecimal declaredValue,
         RiskType riskType,
         @Size(max = 50) String productCategory,
-        @JsonProperty("isDocument") boolean document,   // JSON name kept as in the samples
+        @JsonProperty("isDocument") Boolean document,   // JSON name kept as in the samples; null/missing = false
         LocalDate pickupDate,
         @NotEmpty @Size(max = 100) List<@Valid @NotNull ShipmentPackage> packages,
         Set<AddOn> addOns,
@@ -50,6 +50,7 @@ public record QuoteRequest(
     public QuoteRequest {
         codAmount = codAmount == null ? BigDecimal.ZERO : codAmount;
         riskType = riskType == null ? RiskType.OWNER : riskType;
+        document = Boolean.TRUE.equals(document);
         productCategory = (productCategory == null || productCategory.isBlank())
                 ? DEFAULT_CATEGORY : productCategory.trim().toUpperCase(Locale.ROOT);
         pickupDate = pickupDate == null ? LocalDate.now(IST) : pickupDate;
@@ -80,7 +81,7 @@ public record QuoteRequest(
     }
 
     public ShipmentType shipmentType() {
-        return document ? ShipmentType.DOCUMENT : ShipmentType.PARCEL;
+        return Boolean.TRUE.equals(document) ? ShipmentType.DOCUMENT : ShipmentType.PARCEL;
     }
 
     @JsonIgnore

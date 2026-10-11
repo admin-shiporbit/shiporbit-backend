@@ -71,8 +71,7 @@ public class RateCardLoader {
 
     /** Every enabled service with its ACTIVE card on the date, sorted by partner id, service code. */
     public List<LoadedService> servicesOn(LocalDate date) {
-        Map<Integer, String> partnerNames = partnerRepo.findAll().stream()
-                .collect(Collectors.toMap(p -> p.getId().intValue(), DeliveryPartnerEntity::getPartnerName));
+        Map<Integer, String> partnerNames = partnerNames();
         Map<Long, RateCardEntity> cardByService = cardRepo.findAllActiveOn(date).stream()
                 .collect(Collectors.toMap(RateCardEntity::getServiceId, Function.identity()));
 
@@ -93,6 +92,12 @@ public class RateCardLoader {
                             rulesByCard.getOrDefault(card.getId(), List.of())));
                 })
                 .toList();
+    }
+
+    /** SO_DELIVERY_PARTNER_LIST id -> name (14 rows). DeliveryPartnerEntity.id is Long but the column is INT. */
+    public Map<Integer, String> partnerNames() {
+        return partnerRepo.findAll().stream()
+                .collect(Collectors.toMap(p -> p.getId().intValue(), DeliveryPartnerEntity::getPartnerName));
     }
 
     /** Pincode flags and zone keys for origin -> destination, per partner. Two queries. */

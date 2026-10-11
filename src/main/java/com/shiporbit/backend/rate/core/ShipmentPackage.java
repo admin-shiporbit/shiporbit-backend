@@ -13,7 +13,7 @@ import java.math.BigDecimal;
  * Named ShipmentPackage, not Package, to avoid clashing with java.lang.Package.
  */
 public record ShipmentPackage(
-        @Min(1) @Max(1000) int count,
+        @NotNull @Min(1) @Max(1000) Integer count,     // wrapper: Jackson 3 rejects null for primitives before validation runs
         @NotNull @Positive @Digits(integer = 7, fraction = 3) BigDecimal deadWeightKg,
         @NotNull @Positive @Digits(integer = 5, fraction = 2) BigDecimal lengthCm,
         @NotNull @Positive @Digits(integer = 5, fraction = 2) BigDecimal widthCm,

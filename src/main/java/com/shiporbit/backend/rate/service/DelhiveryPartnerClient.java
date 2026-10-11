@@ -82,6 +82,8 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
         } catch (RestClientException e) {
             throw new PartnerApiException("Unable to connect to Delhivery freight-estimate API", e, HttpStatus.BAD_GATEWAY.value());
         }
+        // Raw "data" block (no credentials in it): lets us check mapToRateResponse() against real numbers.
+        LOGGER.debug("Delhivery rate-calculator response data: {}", response == null ? null : response.get("data"));
         RateResponse rateResponse = mapToRateResponse(response);
         LOGGER.debug("Delhivery rate fetched: finalFreight={}", rateResponse.finalFreight());
         return rateResponse;
@@ -129,17 +131,20 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
         Map<String, Object> data = asMap(response.get("data"));
         Map<String, Object> priceBreakup = asMap(data.get("price_breakup"));
         Map<String, Object> oda = asMap(priceBreakup.get("oda"));
-        Map<String, Object> metaCharges = asMap(priceBreakup.get("meta_charges"));
 
         BigDecimal odaCharge = bigDecimalOf(oda, "fm").add(bigDecimalOf(oda, "lm"));
 
         // Everything that isn't base freight / fuel / insurance / GST gets bucketed
         // into handlingCharges, since RateResponse doesn't have a slot per sub-charge.
+        // meta_charges is NOT added: it is the itemised detail OF other_handling_charges.
+        // Real response (2026-10-11): other_handling_charges=200, meta_charges.to_pay=200, and
+        // base 469 + fuel_surcharge 525 + fuel_hike 80 + insurance_rov 200 + oda.fm 100
+        // + other_handling 200 = 1574 = pre_tax_freight_charges. Adding meta_charges counted 200 twice.
+        // Top-level fm/lm (150/0 in that response) are also not part of pre_tax_freight_charges.
         BigDecimal handlingCharges = bigDecimalOf(priceBreakup, "other_handling_charges")
                 .add(bigDecimalOf(priceBreakup, "appointment_charges"))
                 .add(bigDecimalOf(priceBreakup, "green"))
-                .add(bigDecimalOf(priceBreakup, "markup"))
-                .add(sumOf(metaCharges));
+                .add(bigDecimalOf(priceBreakup, "markup"));
 
         return new RateResponse(
                 partnerCode(),
@@ -157,16 +162,6 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
 
     private Map<String, Object> asMap(Object value) {
         return value instanceof Map<?, ?> map ? (Map<String, Object>) map : Map.of();
-    }
-
-    private BigDecimal sumOf(Map<String, Object> values) {
-        BigDecimal sum = BigDecimal.ZERO;
-        for (Object value : values.values()) {
-            if (value != null) {
-                sum = sum.add(new BigDecimal(value.toString()));
-            }
-        }
-        return sum;
     }
 
     private BigDecimal bigDecimalOf(Map<String, Object> map, String key) {
