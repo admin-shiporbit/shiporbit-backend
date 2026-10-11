@@ -6,7 +6,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -39,6 +41,41 @@ public class GlobalExceptionHandler {
                 .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
                 .collect(Collectors.joining(", "));
         LOGGER.warn("Error ID {} , with message {}",errorId,message);
+        ErrorResponse errorResponse = new ErrorResponse(
+                errorId
+                ,"Validation Failed"
+                ,HttpStatus.BAD_REQUEST.value()
+                ,message
+                ,LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    // Malformed JSON or a value that cannot be parsed (e.g. unknown enum like "paymentMode": "CASH").
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> unreadableBody(HttpMessageNotReadableException ex) {
+        String errorId = UUID.randomUUID().toString();
+        String message = ex.getMostSpecificCause().getMessage();
+        LOGGER.warn("Error ID {} , unreadable request body: {}", errorId, message);
+        ErrorResponse errorResponse = new ErrorResponse(
+                errorId
+                ,"Malformed Request"
+                ,HttpStatus.BAD_REQUEST.value()
+                ,message
+                ,LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    // @Validated controller parameters, e.g. @Pattern on @RequestParam (RateCardController /lane).
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> parameterValidationError(HandlerMethodValidationException ex) {
+        String errorId = UUID.randomUUID().toString();
+        String message = ex.getParameterValidationResults().stream()
+                .flatMap(result -> result.getResolvableErrors().stream()
+                        .map(error -> result.getMethodParameter().getParameterName() + ": " + error.getDefaultMessage()))
+                .collect(Collectors.joining(", "));
+        LOGGER.warn("Error ID {} , with message {}", errorId, message);
         ErrorResponse errorResponse = new ErrorResponse(
                 errorId
                 ,"Validation Failed"

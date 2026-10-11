@@ -1,0 +1,937 @@
+{
+  "quoteId": "Q-20261011-000002",
+  "currency": "INR",
+  "dataStatus": "SAMPLE",
+  "cheapest": {
+    "partner": "EKART",
+    "service": "2KG_FLAT",
+    "total": 94.05
+  },
+  "results": [
+    {
+      "partner": "AMAZON_SHIPPING",
+      "services": [
+        {
+          "service": "STANDARD_05KG",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 0.5,
+            "firstRate": 30.0,
+            "additionalSlabKg": 0.5,
+            "additionalSlabs": 2,
+            "additionalRate": 28.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 86.0
+            },
+            {
+              "code": "COD",
+              "amount": 23.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 10.9
+            },
+            {
+              "code": "GST",
+              "amount": 21.58
+            }
+          ],
+          "taxableAmount": 119.9,
+          "gst": 21.58,
+          "total": 141.48,
+          "cheapestForPartner": true
+        }
+      ]
+    },
+    {
+      "partner": "BORZO",
+      "services": [
+        {
+          "service": "HYPERLOCAL_BIKE",
+          "mode": "HYPERLOCAL",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "vehicle": "BIKE",
+          "distanceKm": 12.0,
+          "slab": {
+            "firstKm": 3,
+            "firstRate": 50,
+            "additionalKm": 9,
+            "ratePerKm": 10
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 140.0
+            },
+            {
+              "code": "COD",
+              "amount": 15.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 15.5
+            },
+            {
+              "code": "GST",
+              "amount": 30.69
+            }
+          ],
+          "taxableAmount": 170.5,
+          "gst": 30.69,
+          "total": 201.19,
+          "cheapestForPartner": true
+        }
+      ]
+    },
+    {
+      "partner": "DTDC",
+      "services": [
+        {
+          "service": "LITE_05KG",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 0.5,
+            "firstRate": 30.0,
+            "additionalSlabKg": 0.5,
+            "additionalSlabs": 2,
+            "additionalRate": 28.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 86.0
+            },
+            {
+              "code": "FUEL_SURCHARGE",
+              "amount": 12.9
+            },
+            {
+              "code": "COD",
+              "amount": 30.0
+            },
+            {
+              "code": "FOV",
+              "amount": 50.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 17.89
+            },
+            {
+              "code": "GST",
+              "amount": 35.42
+            }
+          ],
+          "taxableAmount": 196.79,
+          "gst": 35.42,
+          "total": 232.21,
+          "cheapestForPartner": true
+        }
+      ]
+    },
+    {
+      "partner": "INDIA_POST",
+      "services": [
+        {
+          "service": "SPEED_POST",
+          "mode": "SURFACE_AIR",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "distanceBand": "LOCAL",
+          "chargeableWeightKg": 0.8,
+          "note": "Distance-band tariff; billed on dead weight",
+          "slab": {
+            "firstSlabG": 500,
+            "firstRate": 45,
+            "additionalSlabG": 500,
+            "additionalSlabs": 1,
+            "additionalRate": 18
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 63.0
+            },
+            {
+              "code": "COD",
+              "amount": 30.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 9.3
+            },
+            {
+              "code": "GST",
+              "amount": 18.41
+            }
+          ],
+          "taxableAmount": 102.3,
+          "gst": 18.41,
+          "total": 120.71,
+          "cheapestForPartner": true
+        }
+      ]
+    },
+    {
+      "partner": "RIVIGO",
+      "services": [
+        {
+          "service": "PTL_SURFACE",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "N1-N1",
+          "volumetricWeightKg": 1.271,
+          "chargeableWeightKg": 20.0,
+          "slab": {
+            "ratePerKg": 6.5,
+            "minChargeableKg": 20,
+            "cftKg": 6
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 130.0
+            },
+            {
+              "code": "DOCKET",
+              "amount": 100.0
+            },
+            {
+              "code": "FUEL_SURCHARGE",
+              "amount": 19.5
+            },
+            {
+              "code": "ROV",
+              "amount": 100.0
+            },
+            {
+              "code": "COD_DOD",
+              "amount": 150.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 49.95
+            },
+            {
+              "code": "GST",
+              "amount": 98.9
+            }
+          ],
+          "taxableAmount": 549.45,
+          "gst": 98.9,
+          "total": 648.35,
+          "cheapestForPartner": true
+        }
+      ]
+    },
+    {
+      "partner": "SHADOWFAX",
+      "services": [
+        {
+          "service": "SURFACE_05KG",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 0.5,
+            "firstRate": 29.0,
+            "additionalSlabKg": 0.5,
+            "additionalSlabs": 2,
+            "additionalRate": 27.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 83.0
+            },
+            {
+              "code": "COD",
+              "amount": 25.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 10.8
+            },
+            {
+              "code": "GST",
+              "amount": 21.38
+            }
+          ],
+          "taxableAmount": 118.8,
+          "gst": 21.38,
+          "total": 140.18,
+          "cheapestForPartner": true
+        },
+        {
+          "service": "HYPERLOCAL_BIKE",
+          "mode": "HYPERLOCAL",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "vehicle": "BIKE",
+          "distanceKm": 12.0,
+          "slab": {
+            "firstKm": 4,
+            "firstRate": 45,
+            "additionalKm": 8,
+            "ratePerKm": 8
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 109.0
+            },
+            {
+              "code": "COD",
+              "amount": 15.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 12.4
+            },
+            {
+              "code": "GST",
+              "amount": 24.55
+            }
+          ],
+          "taxableAmount": 136.4,
+          "gst": 24.55,
+          "total": 160.95
+        }
+      ]
+    },
+    {
+      "partner": "TCI",
+      "services": [
+        {
+          "service": "PTL_SURFACE",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "N1-N1",
+          "volumetricWeightKg": 1.271,
+          "chargeableWeightKg": 20.0,
+          "slab": {
+            "ratePerKg": 6.2,
+            "minChargeableKg": 20,
+            "cftKg": 6
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 124.0
+            },
+            {
+              "code": "DOCKET",
+              "amount": 100.0
+            },
+            {
+              "code": "FUEL_SURCHARGE",
+              "amount": 22.32
+            },
+            {
+              "code": "ROV",
+              "amount": 100.0
+            },
+            {
+              "code": "COD_DOD",
+              "amount": 150.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 49.63
+            },
+            {
+              "code": "GST",
+              "amount": 98.27
+            }
+          ],
+          "taxableAmount": 545.95,
+          "gst": 98.27,
+          "total": 644.22,
+          "cheapestForPartner": true
+        }
+      ]
+    },
+    {
+      "partner": "BLUEDART",
+      "services": [
+        {
+          "service": "APEX_05KG",
+          "mode": "AIR",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 0.5,
+            "firstRate": 70.0,
+            "additionalSlabKg": 0.5,
+            "additionalSlabs": 2,
+            "additionalRate": 60.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 190.0
+            },
+            {
+              "code": "FUEL_SURCHARGE",
+              "amount": 34.2
+            },
+            {
+              "code": "COD",
+              "amount": 35.0
+            },
+            {
+              "code": "FOV",
+              "amount": 50.0
+            },
+            {
+              "code": "DOCKET",
+              "amount": 50.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 35.92
+            },
+            {
+              "code": "GST",
+              "amount": 71.12
+            }
+          ],
+          "taxableAmount": 395.12,
+          "gst": 71.12,
+          "total": 466.24
+        },
+        {
+          "service": "SURFACELINE_05KG",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 0.5,
+            "firstRate": 45.0,
+            "additionalSlabKg": 0.5,
+            "additionalSlabs": 2,
+            "additionalRate": 40.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 125.0
+            },
+            {
+              "code": "FUEL_SURCHARGE",
+              "amount": 22.5
+            },
+            {
+              "code": "COD",
+              "amount": 35.0
+            },
+            {
+              "code": "FOV",
+              "amount": 50.0
+            },
+            {
+              "code": "DOCKET",
+              "amount": 50.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 28.25
+            },
+            {
+              "code": "GST",
+              "amount": 55.94
+            }
+          ],
+          "taxableAmount": 310.75,
+          "gst": 55.94,
+          "total": 366.69,
+          "cheapestForPartner": true
+        }
+      ]
+    },
+    {
+      "partner": "DELHIVERY",
+      "services": [
+        {
+          "service": "SURFACE_05KG",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 0.5,
+            "firstRate": 32.0,
+            "additionalSlabKg": 0.5,
+            "additionalSlabs": 2,
+            "additionalRate": 30.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 92.0
+            },
+            {
+              "code": "DEST_CITY_SURCHARGE",
+              "amount": 10.0
+            },
+            {
+              "code": "COD",
+              "amount": 30.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 13.2
+            },
+            {
+              "code": "GST",
+              "amount": 26.14
+            }
+          ],
+          "taxableAmount": 145.2,
+          "gst": 26.14,
+          "total": 171.34,
+          "cheapestForPartner": true
+        },
+        {
+          "service": "EXPRESS_05KG",
+          "mode": "AIR",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 0.5,
+            "firstRate": 35.0,
+            "additionalSlabKg": 0.5,
+            "additionalSlabs": 2,
+            "additionalRate": 33.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 101.0
+            },
+            {
+              "code": "DEST_CITY_SURCHARGE",
+              "amount": 10.0
+            },
+            {
+              "code": "COD",
+              "amount": 30.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 14.1
+            },
+            {
+              "code": "GST",
+              "amount": 27.92
+            }
+          ],
+          "taxableAmount": 155.1,
+          "gst": 27.92,
+          "total": 183.02
+        },
+        {
+          "service": "SURFACE_5KG",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 5.0,
+            "firstRate": 140.0,
+            "additionalSlabKg": 1.0,
+            "additionalSlabs": 0,
+            "additionalRate": 25.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 140.0
+            },
+            {
+              "code": "DEST_CITY_SURCHARGE",
+              "amount": 10.0
+            },
+            {
+              "code": "COD",
+              "amount": 30.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 18.0
+            },
+            {
+              "code": "GST",
+              "amount": 35.64
+            }
+          ],
+          "taxableAmount": 198.0,
+          "gst": 35.64,
+          "total": 233.64
+        }
+      ]
+    },
+    {
+      "partner": "EKART",
+      "services": [
+        {
+          "service": "SURFACE_05KG",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 0.5,
+            "firstRate": 30.0,
+            "additionalSlabKg": 0.5,
+            "additionalSlabs": 2,
+            "additionalRate": 28.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 86.0
+            },
+            {
+              "code": "COD",
+              "amount": 28.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 11.4
+            },
+            {
+              "code": "GST",
+              "amount": 22.57
+            }
+          ],
+          "taxableAmount": 125.4,
+          "gst": 22.57,
+          "total": 147.97
+        },
+        {
+          "service": "2KG_FLAT",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 2.0,
+            "firstRate": 72.45,
+            "additionalSlabKg": 2.0,
+            "additionalSlabs": 0,
+            "additionalRate": 0.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 72.45
+            },
+            {
+              "code": "MARGIN",
+              "amount": 7.25
+            },
+            {
+              "code": "GST",
+              "amount": 14.35
+            }
+          ],
+          "taxableAmount": 79.7,
+          "gst": 14.35,
+          "total": 94.05,
+          "cheapestForPartner": true
+        }
+      ]
+    },
+    {
+      "partner": "PIKNDEL",
+      "services": [
+        {
+          "service": "HYPERLOCAL_BIKE",
+          "mode": "HYPERLOCAL",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "vehicle": "BIKE",
+          "distanceKm": 12.0,
+          "slab": {
+            "firstKm": 5,
+            "firstRate": 60,
+            "additionalKm": 7,
+            "ratePerKm": 9
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 123.0
+            },
+            {
+              "code": "COD",
+              "amount": 20.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 14.3
+            },
+            {
+              "code": "GST",
+              "amount": 28.31
+            }
+          ],
+          "taxableAmount": 157.3,
+          "gst": 28.31,
+          "total": 185.61,
+          "cheapestForPartner": true
+        }
+      ]
+    },
+    {
+      "partner": "SAFEXPRESS",
+      "services": [
+        {
+          "service": "PTL_SURFACE",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "N1-N1",
+          "volumetricWeightKg": 1.271,
+          "chargeableWeightKg": 20.0,
+          "slab": {
+            "ratePerKg": 7.0,
+            "minChargeableKg": 20,
+            "cftKg": 6
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 140.0
+            },
+            {
+              "code": "DOCKET",
+              "amount": 150.0
+            },
+            {
+              "code": "FUEL_SURCHARGE",
+              "amount": 21.0
+            },
+            {
+              "code": "ROV",
+              "amount": 100.0
+            },
+            {
+              "code": "COD_DOD",
+              "amount": 150.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 56.1
+            },
+            {
+              "code": "GST",
+              "amount": 111.08
+            }
+          ],
+          "taxableAmount": 617.1,
+          "gst": 111.08,
+          "total": 728.18,
+          "cheapestForPartner": true
+        }
+      ]
+    },
+    {
+      "partner": "SHREE_MARUTI",
+      "services": [
+        {
+          "service": "SURFACE_05KG",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 0.5,
+            "firstRate": 28.0,
+            "additionalSlabKg": 0.5,
+            "additionalSlabs": 2,
+            "additionalRate": 26.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 80.0
+            },
+            {
+              "code": "COD",
+              "amount": 25.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 10.5
+            },
+            {
+              "code": "GST",
+              "amount": 20.79
+            }
+          ],
+          "taxableAmount": 115.5,
+          "gst": 20.79,
+          "total": 136.29,
+          "cheapestForPartner": true
+        }
+      ]
+    },
+    {
+      "partner": "XPRESSBEES",
+      "services": [
+        {
+          "service": "SURFACE_05KG",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 0.5,
+            "firstRate": 28.0,
+            "additionalSlabKg": 0.5,
+            "additionalSlabs": 2,
+            "additionalRate": 26.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 80.0
+            },
+            {
+              "code": "COD",
+              "amount": 22.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 10.2
+            },
+            {
+              "code": "GST",
+              "amount": 20.2
+            }
+          ],
+          "taxableAmount": 112.2,
+          "gst": 20.2,
+          "total": 132.4,
+          "cheapestForPartner": true
+        },
+        {
+          "service": "SURFACE_1KG",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 1.0,
+            "firstRate": 52.0,
+            "additionalSlabKg": 1.0,
+            "additionalSlabs": 1,
+            "additionalRate": 40.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 92.0
+            },
+            {
+              "code": "COD",
+              "amount": 22.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 11.4
+            },
+            {
+              "code": "GST",
+              "amount": 22.57
+            }
+          ],
+          "taxableAmount": 125.4,
+          "gst": 22.57,
+          "total": 147.97
+        },
+        {
+          "service": "SURFACE_2KG",
+          "mode": "SURFACE",
+          "dataStatus": "SAMPLE",
+          "status": "OK",
+          "zone": "A",
+          "volumetricWeightKg": 1.2,
+          "chargeableWeightKg": 1.2,
+          "slab": {
+            "firstSlabKg": 2.0,
+            "firstRate": 80.0,
+            "additionalSlabKg": 1.0,
+            "additionalSlabs": 0,
+            "additionalRate": 32.0
+          },
+          "breakdown": [
+            {
+              "code": "BASE",
+              "amount": 80.0
+            },
+            {
+              "code": "COD",
+              "amount": 22.0
+            },
+            {
+              "code": "MARGIN",
+              "amount": 10.2
+            },
+            {
+              "code": "GST",
+              "amount": 20.2
+            }
+          ],
+          "taxableAmount": 112.2,
+          "gst": 20.2,
+          "total": 132.4
+        }
+      ]
+    }
+  ]
+}
