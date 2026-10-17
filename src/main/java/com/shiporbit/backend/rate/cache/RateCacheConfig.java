@@ -17,6 +17,7 @@ import java.time.Duration;
  *   <li>{@link #SERVICES}: enabled services + ACTIVE card snapshot per pickup date (5 queries saved).</li>
  *   <li>{@link #PARTNER_NAMES}: partner id -> name (1 query saved).</li>
  *   <li>{@link #LANES}: pincode flags + zone keys per origin/destination (2 queries saved).</li>
+ *   <li>{@link #ZONE_CONFIG}: zone rules of every partner (3 queries saved on each lane miss).</li>
  * </ul>
  * Entries expire after shiporbit.rates.cache-ttl-minutes (default 10) as a safety net for direct DB edits;
  * app-side changes (import, activation) call RateCardCacheService.evictAll() so new rates apply at once.
@@ -29,6 +30,7 @@ public class RateCacheConfig {
     public static final String SERVICES = "rateCardServices";
     public static final String PARTNER_NAMES = "ratePartnerNames";
     public static final String LANES = "rateLanes";
+    public static final String ZONE_CONFIG = "rateZoneConfig";
 
     @Bean
     public CacheManager cacheManager(@Value("${shiporbit.rates.cache-ttl-minutes:10}") long ttlMinutes,
@@ -43,6 +45,9 @@ public class RateCacheConfig {
                 .expireAfterWrite(ttl).recordStats().build());
         manager.registerCustomCache(LANES, Caffeine.newBuilder()
                 .maximumSize(laneCacheSize)      // one entry per origin/destination pair
+                .expireAfterWrite(ttl).recordStats().build());
+        manager.registerCustomCache(ZONE_CONFIG, Caffeine.newBuilder()
+                .maximumSize(1)                  // one ZoneConfig for all partners
                 .expireAfterWrite(ttl).recordStats().build());
         return manager;
     }

@@ -7,6 +7,7 @@ import com.shiporbit.backend.rate.engine.PincodeInfo;
 import com.shiporbit.backend.rate.engine.RateCardSnapshot;
 import com.shiporbit.backend.rate.engine.ServiceInfo;
 import com.shiporbit.backend.rate.engine.SlabRow;
+import com.shiporbit.backend.rate.engine.zone.ZoneConfig;
 import com.shiporbit.backend.rate.entity.PartnerPincodeEntity;
 import com.shiporbit.backend.rate.entity.PricingModel;
 import com.shiporbit.backend.rate.entity.RateCardEntity;
@@ -42,8 +43,10 @@ import java.util.stream.Collectors;
 /**
  * Reads rate-card tables and turns them into immutable engine records.
  * Query count is fixed, whatever the number of services:
- * services, partners, ACTIVE cards, slabs, rules (5) + pincodes, zones (2) per lane.
+ * services, partners, ACTIVE cards, slabs, rules (5) + pincodes, zones (2) per lane
+ * + zone rules (3, ZoneConfigLoader, cached once for all lanes).
  * Results are cached (RateCacheConfig): servicesOn by date, lanes by origin/destination;
+ * zone rules via ZoneConfigLoader;
  * partner names via PartnerDirectory.
  * Everything returned is immutable, so cached values can be shared safely.
  * After changing rate data, call RateCardCacheService.evictAll().
@@ -61,10 +64,12 @@ public class RateCardLoader {
     private final PartnerPincodeRepository pincodeRepo;
     private final ZoneMapRepository zoneRepo;
     private final PartnerDirectory partnerDirectory;
+    private final ZoneConfigLoader zoneConfigLoader;
 
     public RateCardLoader(RateServiceRepository serviceRepo, RateCardRepository cardRepo, RateSlabRepository slabRepo,
                           RateChargeRuleRepository ruleRepo, PartnerPincodeRepository pincodeRepo,
-                          ZoneMapRepository zoneRepo, PartnerDirectory partnerDirectory) {
+                          ZoneMapRepository zoneRepo, PartnerDirectory partnerDirectory,
+                          ZoneConfigLoader zoneConfigLoader) {
         this.serviceRepo = serviceRepo;
         this.cardRepo = cardRepo;
         this.slabRepo = slabRepo;
@@ -72,6 +77,7 @@ public class RateCardLoader {
         this.pincodeRepo = pincodeRepo;
         this.zoneRepo = zoneRepo;
         this.partnerDirectory = partnerDirectory;
+        this.zoneConfigLoader = zoneConfigLoader;
     }
 
     /** One enabled service and its ACTIVE card on the date (card null = none active). */
@@ -110,7 +116,11 @@ public class RateCardLoader {
         return partnerDirectory.names();     // cached in PartnerDirectory
     }
 
-    /** Pincode flags and zone keys for origin -> destination, per partner. Two queries. Cached per lane. */
+    /**
+     * Pincode flags and zone keys for origin -> destination, per partner. Two queries. Cached per lane.
+     * Zone key per pricing model: the SO_ZONE_MAP row for the exact pincodes if there is one (override),
+     * otherwise the partner's zone rules (SO_ZONE_RULE), worked out from both pincodes' city and state.
+     */
     @Cacheable(RateCacheConfig.LANES)
     public Map<Integer, PartnerLane> lanes(String origin, String destination) {
         LOGGER.debug("Rate-card cache MISS: loading lane {} -> {} from DB", origin, destination);
@@ -124,12 +134,26 @@ public class RateCardLoader {
                     .put(z.getId().getPricingModel(), z.getLocationKey());
         }
 
+        ZoneConfig zoneConfig = zoneConfigLoader.current();    // other bean -> goes through the cache
+
         Map<Integer, PartnerLane> lanes = new HashMap<>();
         Set<Integer> partnerIds = new HashSet<>(pins.keySet());
         partnerIds.addAll(keys.keySet());
         for (Integer id : partnerIds) {
             Map<String, PincodeInfo> p = pins.getOrDefault(id, Map.of());
-            lanes.put(id, new PartnerLane(p.get(origin), p.get(destination), keys.getOrDefault(id, Map.of())));
+            PincodeInfo from = p.get(origin);
+            PincodeInfo to = p.get(destination);
+            // Not new EnumMap<>(Map.of()): that constructor throws on an empty non-EnumMap.
+            Map<PricingModel, String> partnerKeys = new EnumMap<>(PricingModel.class);
+            partnerKeys.putAll(keys.getOrDefault(id, Map.of()));
+            if (from != null && to != null) {          // rules need both pincodes; a missing one is NOT_SERVICEABLE anyway
+                for (PricingModel model : zoneConfig.modelsFor(id)) {
+                    if (!partnerKeys.containsKey(model)) {      // SO_ZONE_MAP wins
+                        zoneConfig.resolve(id, model, from, to).ifPresent(key -> partnerKeys.put(model, key));
+                    }
+                }
+            }
+            lanes.put(id, new PartnerLane(from, to, partnerKeys));
         }
         return Map.copyOf(lanes);
     }
@@ -157,8 +181,9 @@ public class RateCardLoader {
                 r.getAppliesWhen(), r.getAppliesValue(), r.getDirections(), r.getValidFrom(), r.getValidTo());
     }
 
-    private static PincodeInfo toPincode(PartnerPincodeEntity p) {
-        return new PincodeInfo(p.getId().getPincode(), p.getCityCode(), p.isPickup(), p.isDelivery(), p.isCod(),
-                p.isPrepaid(), p.isReversePickup(), p.isOda(), p.isSpecialCity());
+    /** Package-private: also used by RateCardQueryService to show rule-based zones on the lane endpoint. */
+    static PincodeInfo toPincode(PartnerPincodeEntity p) {
+        return new PincodeInfo(p.getId().getPincode(), p.getCityCode(), p.getStateId(), p.isPickup(), p.isDelivery(),
+                p.isCod(), p.isPrepaid(), p.isReversePickup(), p.isOda(), p.isSpecialCity());
     }
 }

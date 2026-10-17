@@ -18,12 +18,16 @@ import com.shiporbit.backend.rate.repository.RateSlabRepository;
 import com.shiporbit.backend.rate.repository.ZoneMapRepository;
 import com.shiporbit.backend.rate.entity.PartnerPincodeEntity;
 import com.shiporbit.backend.rate.entity.ZoneMapEntity;
+import com.shiporbit.backend.rate.engine.PincodeInfo;
+import com.shiporbit.backend.rate.engine.zone.ZoneConfig;
+import com.shiporbit.backend.rate.entity.PricingModel;
 import com.shiporbit.backend.repository.DeliveryPartnerRepository;
 import com.shiporbit.backend.repository.StateRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,11 +51,13 @@ public class RateCardQueryService {
     private final ZoneMapRepository zoneRepo;
     private final DeliveryPartnerRepository partnerRepo;
     private final StateRepository stateRepo;
+    private final ZoneConfigLoader zoneConfigLoader;
 
     public RateCardQueryService(RateServiceRepository serviceRepo, RateCardRepository cardRepo,
                                 RateSlabRepository slabRepo, RateChargeRuleRepository ruleRepo,
                                 PartnerPincodeRepository pincodeRepo, ZoneMapRepository zoneRepo,
-                                DeliveryPartnerRepository partnerRepo, StateRepository stateRepo) {
+                                DeliveryPartnerRepository partnerRepo, StateRepository stateRepo,
+                                ZoneConfigLoader zoneConfigLoader) {
         this.serviceRepo = serviceRepo;
         this.cardRepo = cardRepo;
         this.slabRepo = slabRepo;
@@ -60,6 +66,7 @@ public class RateCardQueryService {
         this.zoneRepo = zoneRepo;
         this.partnerRepo = partnerRepo;
         this.stateRepo = stateRepo;
+        this.zoneConfigLoader = zoneConfigLoader;
     }
 
     public List<ServiceView> enabledServices() {
@@ -75,9 +82,11 @@ public class RateCardQueryService {
     }
 
     public LaneView lane(String origin, String destination) {
-        // 4 queries in total: pincodes, zones, partner names (14 rows), state names (only states found)
+        // 7 queries in total: pincodes, zones, partner names (14 rows), state names (only states found),
+        // zone rules (3, uncached so this endpoint always shows current DB data)
         List<PartnerPincodeEntity> pincodeRows = pincodeRepo.findByIdPincodeIn(Set.copyOf(List.of(origin, destination))); // copyOf: origin may equal destination
         List<ZoneMapEntity> zoneRows = zoneRepo.findByIdOriginPincodeAndIdDestinationPincode(origin, destination);
+        ZoneConfig zoneConfig = zoneConfigLoader.read();
         Map<Integer, String> partnerNames = partnerNames();
         Map<Integer, String> stateNames = stateRepo.findAllById(
                         pincodeRows.stream().map(PartnerPincodeEntity::getStateId).collect(Collectors.toSet()))
@@ -99,9 +108,31 @@ public class RateCardQueryService {
             return new PartnerLaneView(id, partnerNames.get(id),
                     toView(pins.get(origin), stateNames),
                     toView(pins.get(destination), stateNames),
-                    zonesByPartner.getOrDefault(id, List.of()));
+                    withRuleZones(id, pins.get(origin), pins.get(destination),
+                            zonesByPartner.getOrDefault(id, List.of()), zoneConfig));
         }).toList();
         return new LaneView(origin, destination, partners);
+    }
+
+    /**
+     * SO_ZONE_MAP zones first; for pricing models they don't cover, the zone the partner's rules give.
+     * Same order as RateCardLoader.lanes(), so this shows the zone the calculator will use.
+     */
+    private static List<ZoneView> withRuleZones(Integer partnerId, PartnerPincodeEntity origin,
+                                                PartnerPincodeEntity destination, List<ZoneView> mapped,
+                                                ZoneConfig zoneConfig) {
+        if (origin == null || destination == null) {
+            return mapped;
+        }
+        List<ZoneView> zones = new ArrayList<>(mapped);
+        Set<PricingModel> covered = mapped.stream().map(ZoneView::pricingModel).collect(Collectors.toSet());
+        PincodeInfo from = RateCardLoader.toPincode(origin);
+        PincodeInfo to = RateCardLoader.toPincode(destination);
+        zoneConfig.modelsFor(partnerId).stream().sorted()
+                .filter(model -> !covered.contains(model))
+                .forEach(model -> zoneConfig.resolve(partnerId, model, from, to)
+                        .ifPresent(key -> zones.add(ZoneView.fromRule(model, key))));
+        return zones;
     }
 
     private static PincodeView toView(PartnerPincodeEntity row, Map<Integer, String> stateNames) {

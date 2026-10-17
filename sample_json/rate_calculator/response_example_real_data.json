@@ -1,0 +1,240 @@
+{
+  "success": true,
+  "currency": "INR",
+  "isSample": true,
+  "deliveryMode": "Surface",
+  "fromPin": "400001",
+  "toPin": "560001",
+  "weight": "1",
+  "weightUnit": "kg",
+  "length": "10",
+  "width": "10",
+  "height": "10",
+  "dimensionUnit": "cm",
+  "isCOD": true,
+  "orderValue": "1500",
+  "actualWeight": 1,
+  "volumetricWeight": 0.2,
+  "chargeableWeight": 1,
+  "availablePartnerCount": 8,
+  "sortBy": "fare",
+  "sortOptions": [
+    {
+      "key": "fare",
+      "label": "Sort by fare",
+      "field": "result.total",
+      "order": "asc",
+      "enabled": true
+    },
+    {
+      "key": "speed",
+      "label": "Sort by delivery speed",
+      "field": "carrier.etd[0]",
+      "order": "asc",
+      "enabled": false,
+      "reason": "Delivery time (ETD) is not configured for every partner."
+    },
+    {
+      "key": "distance",
+      "label": "Sort by distance",
+      "field": "result.distanceKm",
+      "order": "asc",
+      "enabled": false,
+      "reason": "Partner-specific distance data is not available."
+    }
+  ],
+  "results": [
+    {
+      "carrier": {
+        "name": "Amazon Shipping",
+        "service": "STANDARD",
+        "initials": "AS",
+        "color": "#ff9900",
+        "baseRate": 66.00,
+        "perKg": null,
+        "codFlat": 33.00,
+        "codPct": 0.00,
+        "etd": null,
+        "rating": null,
+        "maxKg": 60.5
+      },
+      "result": {
+        "shipping": 77.88,
+        "cod": 38.94,
+        "gst": 17.82,
+        "total": 116.82,
+        "billable": 1,
+        "distanceKm": null
+      }
+    },
+    {
+      "carrier": {
+        "name": "Ekart",
+        "service": "FLAT_2KG",
+        "initials": "EK",
+        "color": "#10b981",
+        "baseRate": 99.00,
+        "perKg": 38.50,
+        "codFlat": 0.00,
+        "codPct": 0.00,
+        "etd": null,
+        "rating": null,
+        "maxKg": 50
+      },
+      "result": {
+        "shipping": 116.82,
+        "cod": 0.00,
+        "gst": 17.82,
+        "total": 116.82,
+        "billable": 1,
+        "distanceKm": null
+      }
+    },
+    {
+      "carrier": {
+        "name": "Shadowfax",
+        "service": "SURFACE_05KG",
+        "initials": "SF",
+        "color": "#8b5cf6",
+        "baseRate": 47.30,
+        "perKg": 88.00,
+        "codFlat": 27.50,
+        "codPct": 1.32,
+        "etd": null,
+        "rating": null,
+        "maxKg": 10
+      },
+      "result": {
+        "shipping": 107.73,
+        "cod": 32.45,
+        "gst": 21.38,
+        "total": 140.18,
+        "billable": 1,
+        "distanceKm": null
+      }
+    },
+    {
+      "carrier": {
+        "name": "India Post",
+        "service": "SPEED_POST",
+        "initials": "IP",
+        "color": "#dc2626",
+        "baseRate": 104.50,
+        "perKg": 83.60,
+        "codFlat": 33.00,
+        "codPct": 1.65,
+        "etd": null,
+        "rating": null,
+        "maxKg": 35
+      },
+      "result": {
+        "shipping": 172.63,
+        "cod": 38.94,
+        "gst": 32.27,
+        "total": 211.57,
+        "billable": 1,
+        "distanceKm": null
+      }
+    },
+    {
+      "carrier": {
+        "name": "DTDC",
+        "service": "LITE_05KG",
+        "initials": "DT",
+        "color": "#6366f1",
+        "baseRate": 50.60,
+        "perKg": 94.60,
+        "codFlat": 33.00,
+        "codPct": 1.65,
+        "etd": null,
+        "rating": null,
+        "maxKg": 30
+      },
+      "result": {
+        "shipping": 197.76,
+        "cod": 38.94,
+        "gst": 36.11,
+        "total": 236.70,
+        "billable": 1,
+        "distanceKm": null
+      }
+    },
+    {
+      "carrier": {
+        "name": "Blue Dart",
+        "service": "SURFACELINE_05KG",
+        "initials": "BD",
+        "color": "#2563eb",
+        "baseRate": 77.00,
+        "perKg": 136.40,
+        "codFlat": 38.50,
+        "codPct": 2.20,
+        "etd": null,
+        "rating": null,
+        "maxKg": 50
+      },
+      "result": {
+        "shipping": 331.98,
+        "cod": 45.43,
+        "gst": 57.57,
+        "total": 377.41,
+        "billable": 1,
+        "distanceKm": null
+      }
+    },
+    {
+      "carrier": {
+        "name": "Rivigo",
+        "service": "PTL_SURFACE",
+        "initials": "RV",
+        "color": "#0ea5e9",
+        "baseRate": 0.00,
+        "perKg": 12.65,
+        "codFlat": 165.00,
+        "codPct": 0.17,
+        "etd": null,
+        "rating": null,
+        "maxKg": 10000
+      },
+      "result": {
+        "shipping": 602.92,
+        "cod": 194.70,
+        "gst": 121.67,
+        "total": 797.62,
+        "billable": 20,
+        "distanceKm": null
+      }
+    },
+    {
+      "carrier": {
+        "name": "Safexpress",
+        "service": "PTL_SURFACE",
+        "initials": "SX",
+        "color": "#64748b",
+        "baseRate": 0.00,
+        "perKg": 13.20,
+        "codFlat": 165.00,
+        "codPct": 0.17,
+        "etd": null,
+        "rating": null,
+        "maxKg": 10000
+      },
+      "result": {
+        "shipping": 682.75,
+        "cod": 194.70,
+        "gst": 133.85,
+        "total": 877.45,
+        "billable": 20,
+        "distanceKm": null
+      }
+    }
+  ],
+  "unavailable": [
+    {
+      "name": "Pikndel",
+      "service": "NDD",
+      "status": "NOT_SERVICEABLE",
+      "reason": "Origin pincode 400001 is not serviced"
+    }
+  ]
+}

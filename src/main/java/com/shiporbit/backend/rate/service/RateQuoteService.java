@@ -52,6 +52,14 @@ public class RateQuoteService {
     }
 
     public QuoteResponse quote(QuoteRequest request) {
+        return toResponse(request, quoteAll(request));
+    }
+
+    /**
+     * Every partner service's result for the request (priced or not), sorted by partner id then service code.
+     * Used by quote() and by RateCompareService (frontend compare format).
+     */
+    public List<QuoteResult> quoteAll(QuoteRequest request) {
         Map<Integer, String> partnerNames = loader.partnerNames();
         PartnerFilter.requireKnown(request.partners(), partnerNames.values());
         Set<Integer> livePartners = liveProvider.livePartnerIds();
@@ -68,7 +76,7 @@ public class RateQuoteService {
                 .map(s -> price(s, request, lanes.getOrDefault(s.service().partnerId(), PartnerLane.EMPTY)))
                 .forEach(results::add);
         results.sort(Comparator.comparing(QuoteResult::partnerId).thenComparing(QuoteResult::serviceCode));
-        return toResponse(request, results);
+        return results;
     }
 
     private QuoteResult price(LoadedService loaded, QuoteRequest request, PartnerLane lane) {

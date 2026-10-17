@@ -73,9 +73,14 @@ public final class RateCardViews {
         }
     }
 
-    public record ZoneView(PricingModel pricingModel, String locationKey) {
+    /** source: ZONE_MAP (row for the exact pincode pair) or ZONE_RULE (worked out from SO_ZONE_RULE). */
+    public record ZoneView(PricingModel pricingModel, String locationKey, String source) {
         public static ZoneView from(ZoneMapEntity e) {
-            return new ZoneView(e.getId().getPricingModel(), e.getLocationKey());
+            return new ZoneView(e.getId().getPricingModel(), e.getLocationKey(), "ZONE_MAP");
+        }
+
+        public static ZoneView fromRule(PricingModel model, String locationKey) {
+            return new ZoneView(model, locationKey, "ZONE_RULE");
         }
     }
 

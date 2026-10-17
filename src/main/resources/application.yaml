@@ -130,3 +130,25 @@ notification:
     from-name: ShipOrbit
     reply-to: ${MAIL_REPLY_TO:}
     parallelism: 4 # concurrent SMTP sends; keep <= 5 for Gmail
+
+shiporbit:
+  partners:
+    # Carrier display data for POST /api/v1/rates/compare. Keys = SO_DELIVERY_PARTNER_LIST.ID.
+    # display-name / initials default from the DB name when missing. rating (0-5) and
+    # etd-min-days / etd-max-days are left out until real figures are known: they are returned
+    # as null, and "sort by delivery speed" stays disabled until every partner shown has an ETD.
+    profiles:
+      1: { display-name: Delhivery, initials: DH, color: "#ef4444" }
+      2: { display-name: Blue Dart, initials: BD, color: "#2563eb" }
+      3: { display-name: DTDC, initials: DT, color: "#6366f1" }
+      4: { display-name: Amazon Shipping, initials: AS, color: "#ff9900" }
+      5: { display-name: Borzo, initials: BZ, color: "#ec4899" }
+      6: { display-name: India Post, initials: IP, color: "#dc2626" }
+      7: { display-name: Rivigo, initials: RV, color: "#0ea5e9" }
+      8: { display-name: Shadowfax, initials: SF, color: "#8b5cf6" }
+      9: { display-name: TCI Express, initials: TC, color: "#0f766e" }
+      10: { display-name: Ekart, initials: EK, color: "#10b981" }
+      11: { display-name: Pikndel, initials: PK, color: "#f97316" }
+      12: { display-name: Safexpress, initials: SX, color: "#64748b" }
+      13: { display-name: Shree Maruti, initials: SM, color: "#b91c1c" }
+      14: { display-name: XpressBees, initials: XB, color: "#f59e0b" }
