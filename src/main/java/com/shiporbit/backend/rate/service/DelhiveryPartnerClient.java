@@ -16,6 +16,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -103,7 +104,7 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
                 "box_count", dimension.getBoxCount()
         );
 
-        return Map.ofEntries(
+        Map<String, Object> body = new LinkedHashMap<>(Map.ofEntries(
                 Map.entry("source_pin", request.sourcePinCode()),
                 Map.entry("consignee_pin", request.destinationPinCode()),
                 Map.entry("cheque_payment", request.chequePayment()),
@@ -114,7 +115,17 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
                 Map.entry("freight_mode", request.freightMode()),
                 Map.entry("pt", request.paymentMode()),
                 Map.entry("dimensions", List.of(dimensionEntry))
-        );
+        ));
+
+        // COD: Delhivery rejects payment_mode=cod without cod_amount
+        // (real error 2026-10-11: "payment_mode: Missing required key: 'cod_amount'").
+        // partnerOptions key "codAmount" (Number); falls back to the invoice amount when absent.
+        // Sent as a string like weight_g / inv_amount - unconfirmed; change if Delhivery rejects the type.
+        if ("cod".equalsIgnoreCase(request.paymentMode())) {
+            Object codAmount = request.partnerOptions().getOrDefault("codAmount", request.inventoryAmout());
+            body.put("cod_amount", String.valueOf(codAmount));
+        }
+        return body;
     }
 
     // Real response shape (confirmed via curl):

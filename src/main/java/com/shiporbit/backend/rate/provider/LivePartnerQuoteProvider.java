@@ -50,8 +50,8 @@ public class LivePartnerQuoteProvider {
 
     /**
      * Live client partnerCode() -> SO_DELIVERY_PARTNER_LIST.ID.
-     * Assumption: the ShreeMurti client is partner 13 (SHREE_MARUTI). UPS/DHL are not in the partner
-     * table, so they are not included here.
+     * The ShreeMurti client is partner 13 (SHREE_MARUTI): same company, confirmed 2026-10-11.
+     * UPS/DHL are not in the partner table, so they are not included here.
      */
     private static final Map<String, Integer> PARTNER_ID_BY_CLIENT_CODE = Map.of(
             "delhivery", 1,
@@ -59,7 +59,7 @@ public class LivePartnerQuoteProvider {
 
     public static final String SERVICE_CODE = "LIVE_API";
 
-    // Delhivery request values: "prepaid" is confirmed by a real curl; "cod" is not yet confirmed.
+    // Delhivery payment_mode values: "prepaid" confirmed; "cod" accepted (2026-10-11, needs cod_amount).
     private static final String DELHIVERY_PAYMENT_PREPAID = "prepaid";
     private static final String DELHIVERY_PAYMENT_COD = "cod";
     private static final BigDecimal GRAMS_PER_KG = BigDecimal.valueOf(1000);
@@ -166,11 +166,13 @@ public class LivePartnerQuoteProvider {
         double weightGrams = p.totalDeadWeightKg().multiply(GRAMS_PER_KG).doubleValue();
         boolean isDelhivery = "delhivery".equals(clientCode);
 
-        // ShreeMurti-only options (its client reads these keys; others ignore them).
+        // Partner-specific options; each client reads only its own keys and ignores the rest.
+        //   ShreeMurti: cod, deliveryMode, insuranceAmount.  Delhivery: codAmount (sent as cod_amount when COD).
         Map<String, Object> partnerOptions = Map.of(
                 "cod", request.isCod(),
                 "deliveryMode", "SURFACE",
-                "insuranceAmount", request.declaredValue().doubleValue());
+                "insuranceAmount", request.declaredValue().doubleValue(),
+                "codAmount", request.codAmount().doubleValue());
 
         return new RequestParamRecord(
                 weightGrams,
