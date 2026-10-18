@@ -1,5 +1,6 @@
 package com.shiporbit.backend.rate.service;
 
+import com.shiporbit.backend.error.ErrorCode;
 import com.shiporbit.backend.exception.PartnerApiException;
 import com.shiporbit.backend.rate.dto.request.RequestParamRecord;
 import com.shiporbit.backend.rate.dto.response.RateResponse;
@@ -65,7 +66,7 @@ public class DelhiveryB2cRateClient {
 
     private Serviceability fetchPin(String pin) {
         if (props.apiToken() == null || props.apiToken().isBlank()) {
-            return Serviceability.unknown("Delhivery B2C api-token not configured");
+            return Serviceability.unknown(ErrorCode.PARTNER_NOT_CONFIGURED, "Delhivery B2C api-token not configured");
         }
         String path = props.pincodeEndpoint() + "?filter_codes=" + pin;
         Object response;
@@ -76,10 +77,10 @@ public class DelhiveryB2cRateClient {
                     .retrieve().body(Object.class);
         } catch (HttpStatusCodeException e) {
             LOGGER.warn("Delhivery B2C pincode API {} for {}: {}", e.getStatusCode(), pin, e.getResponseBodyAsString());
-            return Serviceability.unknown("Delhivery B2C pincode API HTTP " + e.getStatusCode().value());
+            return Serviceability.unknown(Serviceability.codeForHttp(e.getStatusCode().value()), "Delhivery B2C pincode API HTTP " + e.getStatusCode().value());
         } catch (RestClientException e) {
             LOGGER.warn("Delhivery B2C pincode API unreachable for {}: {}", pin, e.getMessage());
-            return Serviceability.unknown("Delhivery B2C pincode API unreachable");
+            return Serviceability.unknown(PartnerApiException.codeForCause(e), "Delhivery B2C pincode API unreachable");
         }
         LOGGER.debug("Delhivery B2C pincode response for {}: {}", pin, response);
         return DelhiveryPinParser.parse(response, pin);
@@ -93,12 +94,12 @@ public class DelhiveryB2cRateClient {
         if (origin) {
             return DelhiveryPinParser.flag(flags, "pickup")
                     ? Serviceability.yes("origin " + pin + " pickup OK")
-                    : Serviceability.no("Delhivery: no pickup at origin " + pin);
+                    : Serviceability.no(ErrorCode.PICKUP_NOT_AVAILABLE, "Delhivery: no pickup at origin " + pin);
         }
         String key = cod ? "cod" : "pre_paid";
         return DelhiveryPinParser.flag(flags, key)
                 ? Serviceability.yes("destination " + pin + " " + key + " OK")
-                : Serviceability.no("Delhivery: " + (cod ? "COD" : "prepaid") + " not available at destination " + pin);
+                : Serviceability.no(cod ? ErrorCode.COD_NOT_SERVICEABLE : ErrorCode.PREPAID_NOT_SERVICEABLE, "Delhivery: " + (cod ? "COD" : "prepaid") + " not available at destination " + pin);
     }
 
     private String authHeader() {

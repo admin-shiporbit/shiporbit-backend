@@ -1,5 +1,6 @@
 package com.shiporbit.backend.rate.service;
 
+import com.shiporbit.backend.error.ErrorCode;
 import com.shiporbit.backend.exception.PartnerApiException;
 import com.shiporbit.backend.rate.auth.CachingTokenProvider;
 import com.shiporbit.backend.rate.auth.DelhiveryTokenFetcher;
@@ -94,16 +95,16 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
                         .retrieve().body(Object.class);
             } catch (HttpStatusCodeException e) {
                 LOGGER.warn("Delhivery LTL pincode-service {} for {}: {}", e.getStatusCode(), pin, e.getResponseBodyAsString());
-                return Serviceability.unknown("Delhivery LTL pincode-service HTTP " + e.getStatusCode().value());
+                return Serviceability.unknown(Serviceability.codeForHttp(e.getStatusCode().value()), "Delhivery LTL pincode-service HTTP " + e.getStatusCode().value());
             } catch (RuntimeException e) {
                 LOGGER.warn("Delhivery LTL pincode-service failed for {}: {}", pin, e.getMessage());
-                return Serviceability.unknown("Delhivery LTL pincode-service unreachable");
+                return Serviceability.unknown(e instanceof PartnerApiException pae ? pae.errorCode() : PartnerApiException.codeForCause(e), "Delhivery LTL pincode-service failed: " + e.getMessage());
             }
             LOGGER.debug("Delhivery LTL pincode-service response for {} (weight {} kg): {}", pin, weightKg, response);
             return ServiceabilityJson.findFlag(response)
                     .map(ok -> ok ? Serviceability.yes("LTL pin " + pin + " serviceable")
-                                  : Serviceability.no("Delhivery LTL does not serve pincode " + pin))
-                    .orElseGet(() -> Serviceability.unknown("Delhivery LTL pincode-service: no serviceable flag in response"));
+                                  : Serviceability.no(ErrorCode.NOT_SERVICEABLE, "Delhivery LTL does not serve pincode " + pin))
+                    .orElseGet(() -> Serviceability.unknown(ErrorCode.SERVICEABILITY_UNCONFIRMED, "Delhivery LTL pincode-service: no serviceable flag in response"));
         });
     }
 

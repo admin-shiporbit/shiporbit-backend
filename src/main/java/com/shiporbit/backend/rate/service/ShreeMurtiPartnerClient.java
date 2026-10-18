@@ -1,5 +1,6 @@
 package com.shiporbit.backend.rate.service;
 
+import com.shiporbit.backend.error.ErrorCode;
 import com.shiporbit.backend.exception.PartnerApiException;
 import com.shiporbit.backend.rate.auth.CachingTokenProvider;
 import com.shiporbit.backend.rate.auth.ShreeMurtiTokenFetcher;
@@ -108,7 +109,7 @@ public class ShreeMurtiPartnerClient implements DeliveryPartnerClient {
      */
     public Serviceability checkHyperlocal(HyperlocalAddress pickup, HyperlocalAddress drop, boolean cod) {
         if (pickup == null || drop == null || !pickup.complete() || !drop.complete()) {
-            return Serviceability.unknown("Hyperlocal check needs address, pincode, latitude, longitude for pickup and drop");
+            return Serviceability.unknown(ErrorCode.HYPERLOCAL_ADDRESS_REQUIRED, "Hyperlocal check needs address, pincode, latitude, longitude for pickup and drop");
         }
         String paymentMode = cod ? "COD" : "PREPAID";
         String key = "shreemurti:hyperlocal:" + pickup.latitude() + "," + pickup.longitude() + ":"
@@ -145,7 +146,7 @@ public class ShreeMurtiPartnerClient implements DeliveryPartnerClient {
                     "tenantid", token.get("tenantId"));
         } catch (RuntimeException e) {
             LOGGER.warn("ShreeMurti login failed for serviceability {}: {}", lane, e.getMessage());
-            return Serviceability.unknown("ShreeMurti login failed");
+            return Serviceability.unknown(e instanceof PartnerApiException pae ? pae.errorCode() : ErrorCode.PARTNER_AUTH_FAILED, "ShreeMurti login failed: " + e.getMessage());
         }
         LOGGER.debug("Outgoing ShreeMurti serviceability request:\n{}",
                 CurlLogger.toCurl("POST", shreeMurtiConfigProperties.routerUrl() + endpoint, headers, body));
@@ -157,16 +158,16 @@ public class ShreeMurtiPartnerClient implements DeliveryPartnerClient {
                     .retrieve().body(Object.class);
         } catch (HttpStatusCodeException e) {
             LOGGER.warn("ShreeMurti serviceability {} for {}: {}", e.getStatusCode(), lane, e.getResponseBodyAsString());
-            return Serviceability.unknown("ShreeMurti serviceability HTTP " + e.getStatusCode().value());
+            return Serviceability.unknown(Serviceability.codeForHttp(e.getStatusCode().value()), "ShreeMurti serviceability HTTP " + e.getStatusCode().value());
         } catch (RestClientException e) {
             LOGGER.warn("ShreeMurti serviceability unreachable for {}: {}", lane, e.getMessage());
-            return Serviceability.unknown("ShreeMurti serviceability API unreachable");
+            return Serviceability.unknown(PartnerApiException.codeForCause(e), "ShreeMurti serviceability API unreachable");
         }
         LOGGER.debug("ShreeMurti serviceability response for {}: {}", lane, response);
         return ServiceabilityJson.findFlag(response)
                 .map(ok -> ok ? Serviceability.yes("ShreeMurti serves " + lane)
-                              : Serviceability.no("ShreeMurti does not serve " + lane))
-                .orElseGet(() -> Serviceability.unknown("ShreeMurti serviceability: no serviceable flag in response"));
+                              : Serviceability.no(ErrorCode.NOT_SERVICEABLE, "ShreeMurti does not serve " + lane))
+                .orElseGet(() -> Serviceability.unknown(ErrorCode.SERVICEABILITY_UNCONFIRMED, "ShreeMurti serviceability: no serviceable flag in response"));
     }
 
     @Override

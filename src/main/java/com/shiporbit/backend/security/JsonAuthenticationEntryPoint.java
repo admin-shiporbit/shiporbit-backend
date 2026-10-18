@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Component
@@ -29,13 +28,8 @@ public class JsonAuthenticationEntryPoint implements AuthenticationEntryPoint {
             HttpServletResponse response,
             AuthenticationException exception
     ) throws IOException, ServletException {
-        ErrorResponse error = new ErrorResponse(
-                UUID.randomUUID().toString(),
-                "Unauthorized",
-                HttpServletResponse.SC_UNAUTHORIZED,
-                "A valid Bearer token is required",
-                LocalDateTime.now()
-        );
+        ErrorResponse error = ErrorResponse.of(UUID.randomUUID().toString(),
+                com.shiporbit.backend.error.ErrorCode.UNAUTHORIZED, null);
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

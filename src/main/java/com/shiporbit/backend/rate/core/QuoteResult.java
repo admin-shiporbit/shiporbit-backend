@@ -58,13 +58,23 @@ public sealed interface QuoteResult permits QuoteResult.Priced, QuoteResult.Unav
             ServiceMode mode,
             DataStatus dataStatus,
             QuoteStatus status,
-            String reason
+            String reason,
+            String errorCode                // ErrorCode.code(), e.g. SO-SVC-001; defaults from status
     ) implements QuoteResult {
         public Unavailable {
             Objects.requireNonNull(status, "status");
             if (status == QuoteStatus.OK) {
                 throw new IllegalArgumentException("Unavailable result cannot have status OK");
             }
+            if (errorCode == null) {
+                errorCode = com.shiporbit.backend.error.ErrorCode.forQuoteStatus(status).code();
+            }
+        }
+
+        /** Error code derived from status (rate-card calculators). */
+        public Unavailable(Integer partnerId, String partnerName, String serviceCode, ServiceMode mode,
+                           DataStatus dataStatus, QuoteStatus status, String reason) {
+            this(partnerId, partnerName, serviceCode, mode, dataStatus, status, reason, null);
         }
     }
 }

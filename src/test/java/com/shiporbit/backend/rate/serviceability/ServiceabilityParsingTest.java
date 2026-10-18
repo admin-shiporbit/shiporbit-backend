@@ -22,8 +22,8 @@ class ServiceabilityParsingTest {
     @Test
     void bothEndsMustPass() {
         var yes = Serviceability.yes("o");
-        var no = Serviceability.no("dest not served");
-        var unk = Serviceability.unknown("api down");
+        var no = Serviceability.no(com.shiporbit.backend.error.ErrorCode.NOT_SERVICEABLE, "dest not served");
+        var unk = Serviceability.unknown(com.shiporbit.backend.error.ErrorCode.PARTNER_UNREACHABLE, "api down");
         assertEquals(Serviceability.Status.SERVICEABLE, Serviceability.both(yes, Serviceability.yes("d")).status());
         assertEquals(no, Serviceability.both(yes, no));
         assertEquals(no, Serviceability.both(unk, no));       // a definite NO beats UNKNOWN

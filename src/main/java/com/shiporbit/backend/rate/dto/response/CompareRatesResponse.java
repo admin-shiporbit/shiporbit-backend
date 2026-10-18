@@ -60,5 +60,6 @@ public record CompareRatesResponse(
     public record Fare(BigDecimal shipping, BigDecimal cod, BigDecimal gst, BigDecimal total,
                        BigDecimal billable, BigDecimal distanceKm) { }
 
-    public record Unavailable(String name, String service, QuoteStatus status, String reason) { }
+    /** errorCode: ErrorCode.code(), e.g. SO-SVC-001 (see com.shiporbit.backend.error.ErrorCode). */
+    public record Unavailable(String name, String service, QuoteStatus status, String errorCode, String reason) { }
 }

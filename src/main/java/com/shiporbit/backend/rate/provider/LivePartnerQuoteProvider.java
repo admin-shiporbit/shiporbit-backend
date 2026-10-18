@@ -1,6 +1,7 @@
 package com.shiporbit.backend.rate.provider;
 
 import com.shiporbit.backend.dto.Dimension;
+import com.shiporbit.backend.error.ErrorCode;
 import com.shiporbit.backend.exception.PartnerApiException;
 import com.shiporbit.backend.rate.core.ChargeLine;
 import com.shiporbit.backend.rate.core.QuoteRequest;
@@ -129,13 +130,20 @@ public class LivePartnerQuoteProvider {
             case NOT_SERVICEABLE -> {
                 LOGGER.debug("Partner {} not serviceable {} -> {}: {}", name, params.sourcePinCode(),
                         params.destinationPinCode(), serviceability.reason());
-                return unavailable(partnerId, name, QuoteStatus.NOT_SERVICEABLE, serviceability.reason());
+                return unavailable(partnerId, name, QuoteStatus.NOT_SERVICEABLE, serviceability.errorCode(),
+                        serviceability.reason());
             }
-            // Fail-open: a broken serviceability API must not hide the partner; the rate call decides.
-            case UNKNOWN -> LOGGER.warn("Partner {} serviceability unknown {} -> {} ({}); pricing anyway",
-                    name, params.sourcePinCode(), params.destinationPinCode(), serviceability.reason());
-            case SERVICEABLE -> LOGGER.debug("Partner {} serviceable {} -> {}: {}", name, params.sourcePinCode(),
-                    params.destinationPinCode(), serviceability.reason());
+            // Strict: rates are fetched only when both pincodes are confirmed serviceable.
+            // UNKNOWN (serviceability API error / unreadable answer) -> no rate call, partner shown as unavailable.
+            case UNKNOWN -> {
+                LOGGER.warn("Partner {} serviceability not confirmed {} -> {} ({}); rate not fetched",
+                        name, params.sourcePinCode(), params.destinationPinCode(), serviceability.reason());
+                return unavailable(partnerId, name, QuoteStatus.PARTNER_API_ERROR,
+                        serviceability.errorCode() == null ? ErrorCode.SERVICEABILITY_UNCONFIRMED : serviceability.errorCode(),
+                        "Serviceability could not be confirmed: " + serviceability.reason());
+            }
+            case SERVICEABLE -> LOGGER.debug("Partner {} serviceable {} -> {}: {}; fetching rate", name,
+                    params.sourcePinCode(), params.destinationPinCode(), serviceability.reason());
         }
         RateResponse rate = client.getRate(params);
         return toPriced(partnerId, name, rate);
@@ -147,7 +155,7 @@ public class LivePartnerQuoteProvider {
         } catch (TimeoutException e) {
             future.cancel(true);
             LOGGER.warn("Live rate API for partner {} timed out after {}s", name, timeoutSeconds);
-            return unavailable(partnerId, name, QuoteStatus.PARTNER_API_ERROR,
+            return unavailable(partnerId, name, QuoteStatus.PARTNER_API_ERROR, ErrorCode.PARTNER_TIMEOUT,
                     "Partner API timed out after " + timeoutSeconds + "s");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -158,10 +166,10 @@ public class LivePartnerQuoteProvider {
             Throwable cause = e.getCause();
             if (cause instanceof PartnerApiException pae) {
                 LOGGER.warn("Live rate API for partner {} failed (HTTP {}): {}", name, pae.httpStatus(), pae.getMessage());
-                return unavailable(partnerId, name, QuoteStatus.PARTNER_API_ERROR, pae.getMessage());
+                return unavailable(partnerId, name, QuoteStatus.PARTNER_API_ERROR, pae.errorCode(), pae.getMessage());
             }
             LOGGER.error("Unexpected error from live rate API for partner {}", name, cause);
-            return unavailable(partnerId, name, QuoteStatus.PARTNER_API_ERROR,
+            return unavailable(partnerId, name, QuoteStatus.PARTNER_API_ERROR, ErrorCode.INTERNAL_ERROR,
                     "Unexpected error from partner API: " + cause.getClass().getSimpleName());
         }
     }
@@ -231,7 +239,13 @@ public class LivePartnerQuoteProvider {
     }
 
     private static QuoteResult.Unavailable unavailable(Integer partnerId, String name, QuoteStatus status, String reason) {
-        return new QuoteResult.Unavailable(partnerId, name, SERVICE_CODE, ServiceMode.SURFACE, null, status, reason);
+        return unavailable(partnerId, name, status, null, reason);
+    }
+
+    private static QuoteResult.Unavailable unavailable(Integer partnerId, String name, QuoteStatus status,
+                                                       ErrorCode errorCode, String reason) {
+        return new QuoteResult.Unavailable(partnerId, name, SERVICE_CODE, ServiceMode.SURFACE, null, status, reason,
+                errorCode == null ? null : errorCode.code());
     }
 
     @PreDestroy

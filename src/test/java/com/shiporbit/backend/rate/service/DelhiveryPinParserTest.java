@@ -30,8 +30,9 @@ class DelhiveryPinParserTest {
     void emptyListIsNotServiceableAndEmbargoFails() {
         assertEquals(Serviceability.Status.NOT_SERVICEABLE,
                 DelhiveryPinParser.parse(Map.of("delivery_codes", List.of()), "194103").status());
-        assertEquals(Serviceability.Status.NOT_SERVICEABLE,
-                DelhiveryPinParser.parse(pin("Y", "Y", "Y", "Embargo"), "560001").status());
+        Serviceability embargo = DelhiveryPinParser.parse(pin("Y", "Y", "Y", "Embargo"), "560001");
+        assertEquals(Serviceability.Status.NOT_SERVICEABLE, embargo.status());
+        assertEquals(com.shiporbit.backend.error.ErrorCode.PINCODE_EMBARGOED, embargo.errorCode());
         assertEquals(Serviceability.Status.UNKNOWN,
                 DelhiveryPinParser.parse(Map.of("detail", "Unauthorized"), "560001").status());
     }

@@ -1,8 +1,11 @@
 package com.shiporbit.backend.exception;
 
-public class UnauthorizedException extends RuntimeException {
+import com.shiporbit.backend.error.ErrorCode;
+
+/** Error code ErrorCode.UNAUTHORIZED. */
+public class UnauthorizedException extends ShipOrbitException {
 
     public UnauthorizedException(String message) {
-        super(message);
+        super(ErrorCode.UNAUTHORIZED, message);
     }
 }

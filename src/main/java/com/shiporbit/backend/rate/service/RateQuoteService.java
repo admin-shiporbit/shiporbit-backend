@@ -159,11 +159,11 @@ public class RateQuoteService {
 
     private static ServiceQuote toServiceQuote(QuoteResult result, boolean cheapestForPartner) {
         return switch (result) {
-            case QuoteResult.Priced p -> new ServiceQuote(p.serviceCode(), p.mode(), p.dataStatus(), p.status(), null,
+            case QuoteResult.Priced p -> new ServiceQuote(p.serviceCode(), p.mode(), p.dataStatus(), p.status(), null, null,
                     p.rateCardVersion(), p.locationKey(), p.volumetricWeightKg(), p.chargeableWeightKg(), p.slab(),
                     visibleLines(p.breakdown()), p.taxableAmount(), p.gst(), p.total(), cheapestForPartner);
             case QuoteResult.Unavailable u -> new ServiceQuote(u.serviceCode(), u.mode(), u.dataStatus(), u.status(),
-                    u.reason(), null, null, null, null, null, null, null, null, null, null);
+                    u.errorCode(), u.reason(), null, null, null, null, null, null, null, null, null, null);
         };
     }
 

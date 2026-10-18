@@ -70,7 +70,7 @@ public class RateCompareService {
                     sample |= p.dataStatus() == DataStatus.SAMPLE;
                 }
                 case QuoteResult.Unavailable u ->
-                        unavailable.add(new Unavailable(profile.displayName(), u.serviceCode(), u.status(), u.reason()));
+                        unavailable.add(new Unavailable(profile.displayName(), u.serviceCode(), u.status(), u.errorCode(), u.reason()));
             }
         }
         results.sort(Comparator.comparing((CarrierResult c) -> c.result().total()).thenComparing(c -> c.carrier().name()));

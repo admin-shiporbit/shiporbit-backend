@@ -1,5 +1,6 @@
 package com.shiporbit.backend.rate.service;
 
+import com.shiporbit.backend.error.ErrorCode;
 import com.shiporbit.backend.rate.serviceability.Serviceability;
 import com.shiporbit.backend.rate.serviceability.ServiceabilityJson;
 
@@ -24,16 +25,16 @@ final class DelhiveryPinParser {
     static Serviceability parse(Object response, String pin) {
         Map<String, Object> root = ServiceabilityJson.asMap(response);
         if (!root.containsKey("delivery_codes")) {
-            return Serviceability.unknown("Delhivery B2C pincode response has no delivery_codes");
+            return Serviceability.unknown(ErrorCode.SERVICEABILITY_UNCONFIRMED, "Delhivery B2C pincode response has no delivery_codes");
         }
         List<?> codes = ServiceabilityJson.asList(root.get("delivery_codes"));
         if (codes.isEmpty()) {
-            return Serviceability.no("Delhivery does not serve pincode " + pin);
+            return Serviceability.no(ErrorCode.NOT_SERVICEABLE, "Delhivery does not serve pincode " + pin);
         }
         Map<String, Object> pc = ServiceabilityJson.asMap(ServiceabilityJson.asMap(codes.get(0)).get("postal_code"));
         String remarks = String.valueOf(pc.getOrDefault("remarks", "")).toLowerCase(Locale.ROOT);
         if (remarks.contains("embargo")) {
-            return Serviceability.no("Delhivery: pincode " + pin + " under embargo");
+            return Serviceability.no(ErrorCode.PINCODE_EMBARGOED, "Delhivery: pincode " + pin + " under embargo");
         }
         String flags = "pickup=" + yn(pc.get("pickup"))
                 + ",cod=" + yn(pc.get("cod"))

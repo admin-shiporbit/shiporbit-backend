@@ -42,6 +42,7 @@ public record QuoteResponse(
             ServiceMode mode,
             DataStatus dataStatus,
             QuoteStatus status,
+            String errorCode,               // not priced only: ErrorCode.code(), e.g. SO-SVC-001
             String reason,
             String rateCardVersion,
             String zone,

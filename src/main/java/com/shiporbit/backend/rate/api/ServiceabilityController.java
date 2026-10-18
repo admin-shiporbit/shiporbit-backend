@@ -60,7 +60,7 @@ public class ServiceabilityController {
     }
 
     private static Result result(String partner, String api, Serviceability s) {
-        return new Result(partner, api, s.status(), s.reason());
+        return new Result(partner, api, s.status(), s.errorCode() == null ? null : s.errorCode().code(), s.reason());
     }
 
     /** Same shape LivePartnerQuoteProvider builds: weight in grams, Delhivery payment_mode cod/prepaid, ShreeMurti cod flag. */
