@@ -13,7 +13,10 @@ import com.shiporbit.backend.rate.engine.PartnerLane;
 import com.shiporbit.backend.rate.engine.ServiceInfo;
 import com.shiporbit.backend.rate.entity.DataStatus;
 import com.shiporbit.backend.rate.provider.LivePartnerQuoteProvider;
+import com.shiporbit.backend.rate.routing.PartnerAllowlistProperties;
 import com.shiporbit.backend.rate.service.RateCardLoader.LoadedService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.format.DateTimeFormatter;
@@ -25,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 /**
@@ -39,16 +43,31 @@ import java.util.stream.Stream;
 @Service
 public class RateQuoteService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(RateQuoteService.class);
     private static final DateTimeFormatter QUOTE_DATE = DateTimeFormatter.BASIC_ISO_DATE;
 
     private final RateCardLoader loader;
     private final CalculatorRegistry registry;
     private final LivePartnerQuoteProvider liveProvider;
+    private final PartnerAllowlistProperties allowlist;
+    private final AtomicBoolean allowlistChecked = new AtomicBoolean();
 
-    public RateQuoteService(RateCardLoader loader, CalculatorRegistry registry, LivePartnerQuoteProvider liveProvider) {
+    public RateQuoteService(RateCardLoader loader, CalculatorRegistry registry, LivePartnerQuoteProvider liveProvider,
+                            PartnerAllowlistProperties allowlist) {
         this.loader = loader;
         this.registry = registry;
         this.liveProvider = liveProvider;
+        this.allowlist = allowlist;
+        if (allowlist.configured()) {
+            LOGGER.info("Partners ON for quotes: {}; OFF: {} (shiporbit.partners.enabled / disabled)",
+                    allowlist.names(true), allowlist.names(false));
+            if (!allowlist.inBoth().isEmpty()) {
+                LOGGER.warn("In both shiporbit.partners.enabled and disabled (treated as disabled): {}", allowlist.inBoth());
+            }
+        } else {
+            LOGGER.warn("shiporbit.partners.enabled is not set: every partner not in disabled {} will be quoted",
+                    allowlist.names(false));
+        }
     }
 
     public QuoteResponse quote(QuoteRequest request) {
@@ -62,21 +81,43 @@ public class RateQuoteService {
     public List<QuoteResult> quoteAll(QuoteRequest request) {
         Map<Integer, String> partnerNames = loader.partnerNames();
         PartnerFilter.requireKnown(request.partners(), partnerNames.values());
+        warnUnknownEnabledNamesOnce(partnerNames.values());
         Set<Integer> livePartners = liveProvider.livePartnerIds();
 
         List<LoadedService> services = loader.servicesOn(request.pickupDate()).stream()
                 .filter(s -> !livePartners.contains(s.service().partnerId()))
                 .filter(s -> s.service().partnerName() != null && request.includesPartner(s.service().partnerName()))
+                .filter(s -> allowlist.allows(s.service().partnerName()))      // shiporbit.partners.enabled
                 .toList();
         Map<Integer, PartnerLane> lanes = services.isEmpty() ? Map.of()
                 : loader.lanes(request.originPincode(), request.destinationPincode());
 
-        List<QuoteResult> results = new ArrayList<>(liveProvider.quote(request, partnerNames));
+        List<QuoteResult> results = new ArrayList<>(liveProvider.quote(request, partnerNames, allowlist::allows));
         services.stream()
                 .map(s -> price(s, request, lanes.getOrDefault(s.service().partnerId(), PartnerLane.EMPTY)))
                 .forEach(results::add);
         results.sort(Comparator.comparing(QuoteResult::partnerId).thenComparing(QuoteResult::serviceCode));
         return results;
+    }
+
+    /** A typo in shiporbit.partners.enabled silently disables a partner, so say so once (names come from the DB). */
+    private void warnUnknownEnabledNamesOnce(java.util.Collection<String> knownNames) {
+        if (!allowlist.configured() || !allowlistChecked.compareAndSet(false, true)) {
+            return;
+        }
+        List<String> unknown = allowlist.allNames().stream()
+                .filter(name -> knownNames.stream().noneMatch(known -> PartnerAllowlistProperties.sameName(name, known)))
+                .toList();
+        if (!unknown.isEmpty()) {
+            LOGGER.warn("shiporbit.partners.enabled/disabled have names not in SO_DELIVERY_PARTNER_LIST (ignored): {}", unknown);
+        }
+        List<String> unlisted = knownNames.stream()
+                .filter(known -> allowlist.allNames().stream().noneMatch(name -> PartnerAllowlistProperties.sameName(name, known)))
+                .sorted()
+                .toList();
+        if (!unlisted.isEmpty()) {
+            LOGGER.warn("Partners in neither shiporbit.partners.enabled nor disabled (not quoted): {}", unlisted);
+        }
     }
 
     private QuoteResult price(LoadedService loaded, QuoteRequest request, PartnerLane lane) {

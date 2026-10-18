@@ -31,6 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Predicate;
 
 /**
  * Adapter: prices partners that have a live rate API through the existing DeliveryPartnerClient
@@ -93,12 +94,14 @@ public class LivePartnerQuoteProvider {
     /**
      * Quotes every live partner allowed by the request's partners filter, in parallel.
      * @param partnerNames SO_DELIVERY_PARTNER_LIST id -> name (used for the filter and the response)
+     * @param partnerAllowed partner name -> may be quoted (shiporbit.partners.enabled); others are not called at all
      */
-    public List<QuoteResult> quote(QuoteRequest request, Map<Integer, String> partnerNames) {
+    public List<QuoteResult> quote(QuoteRequest request, Map<Integer, String> partnerNames,
+                                   Predicate<String> partnerAllowed) {
         Map<Integer, Future<QuoteResult>> futures = new LinkedHashMap<>();
         clientByPartnerId.forEach((partnerId, client) -> {
             String name = partnerNames.getOrDefault(partnerId, client.partnerName());
-            if (request.includesPartner(name)) {
+            if (request.includesPartner(name) && partnerAllowed.test(name)) {
                 futures.put(partnerId, executor.submit(() -> quoteOne(request, partnerId, name, client)));
             }
         });

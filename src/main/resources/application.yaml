@@ -86,6 +86,16 @@ rate-aggregator:
     login-endpoint: /ums/login
     pincode-endpoint: /pincode-service
     ratecalculator-endpoint: /freight/estimate
+  # Delhivery B2C (express parcel). Shipments with dead weight < max-weight-kg are priced here;
+  # heavier ones use the LTL API above.
+  delhivery-b2c:
+    router-url: ${DELHIVERY_B2C_BASE_URL:https://track.delhivery.com}
+    ratecalculator-endpoint: /api/kinko/v1/invoice/charges/.json
+    api-token: ${DELHIVERY_B2C_API_TOKEN:}
+    default-mode: S            # md: S = Surface, E = Express (request mode EXPRESS/AIR sends E)
+    shipment-status: Delivered # ss: Delivered = forward. RTO / DTO price returns
+    max-weight-kg: 20
+    volumetric-divisor: 5000   # cgm = max(dead, LxWxH/divisor) - confirm divisor with Delhivery
   shreemurti:
     username: ${SHREEMURTI_USERNAME}
     password: ${SHREEMURTI_PASSWORD}
@@ -133,6 +143,13 @@ notification:
 
 shiporbit:
   partners:
+    # Partners that may be quoted (/api/v1/rates/quotes and /api/v1/rates/compare).
+    # Move a name between the lists to switch it on/off. disabled = skipped completely (no live-API call,
+    # no rate-card price, not shown). Names = SO_DELIVERY_PARTNER_LIST.PARTNER_NAME:
+    # DELHIVERY, BLUEDART, DTDC, AMAZON_SHIPPING, BORZO, INDIA_POST, RIVIGO, SHADOWFAX, TCI, EKART,
+    # PIKNDEL, SAFEXPRESS, SHREE_MARUTI, XPRESSBEES. A name in neither list is not quoted.
+    enabled: [DELHIVERY, BLUEDART, DTDC, AMAZON_SHIPPING, BORZO, INDIA_POST, RIVIGO, SHADOWFAX, TCI, EKART, PIKNDEL, SAFEXPRESS, SHREE_MARUTI, XPRESSBEES]
+    disabled: []
     # Carrier display data for POST /api/v1/rates/compare. Keys = SO_DELIVERY_PARTNER_LIST.ID.
     # display-name / initials default from the DB name when missing. rating (0-5) and
     # etd-min-days / etd-max-days are left out until real figures are known: they are returned

@@ -28,12 +28,15 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
     private final RestClient delhiveryClient;
     private final DelhiveryConfigProperties delhiveryConfigProperties;
     private final CachingTokenProvider tokenProvider;
+    private final DelhiveryB2cRateClient b2cRateClient;
 
     public DelhiveryPartnerClient(RestClient delhiveryClient,
                                   DelhiveryConfigProperties delhiveryConfigProperties,
-                                  DelhiveryTokenFetcher delhiveryTokenFetcher) {
+                                  DelhiveryTokenFetcher delhiveryTokenFetcher,
+                                  DelhiveryB2cRateClient b2cRateClient) {
         this.delhiveryClient = delhiveryClient;
         this.delhiveryConfigProperties = delhiveryConfigProperties;
+        this.b2cRateClient = b2cRateClient;
         // CachingTokenProvider is a plain object (not a @Component) on purpose: each
         // partner gets its own instance wrapping its own TokenFetcher. Built here so
         // Delhivery's token cache is scoped to this client.
@@ -58,9 +61,17 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
         return true;
     }
 
+    /**
+     * Routes by dead weight: below rate-aggregator.delhivery-b2c.max-weight-kg (default 20 kg) -> B2C
+     * express-parcel API; otherwise -> LTL freight API (unchanged flow below).
+     */
     @Override
     public RateResponse getRate(RequestParamRecord request) {
-        LOGGER.debug("Fetching Delhivery rate: {} -> {}, weight={}g", request.sourcePinCode(), request.destinationPinCode(), request.weight());
+        if (b2cRateClient.handles(request)) {
+            LOGGER.debug("Fetching Delhivery B2C rate: {} -> {}, weight={}g", request.sourcePinCode(), request.destinationPinCode(), request.weight());
+            return b2cRateClient.getRate(request, partnerCode(), partnerName());
+        }
+        LOGGER.debug("Fetching Delhivery LTL rate: {} -> {}, weight={}g", request.sourcePinCode(), request.destinationPinCode(), request.weight());
         String token = tokenProvider.getValidToken().get("token");
 
         Map<String, Object> requestBody = buildRequestBody(request);
