@@ -13,6 +13,7 @@ import com.shiporbit.backend.rate.engine.MarginTaxPolicy;
 import com.shiporbit.backend.rate.entity.ServiceMode;
 import com.shiporbit.backend.rate.entity.ShipmentDirection;
 import com.shiporbit.backend.rate.service.DeliveryPartnerClient;
+import com.shiporbit.backend.rate.serviceability.Serviceability;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,8 +124,18 @@ public class LivePartnerQuoteProvider {
         }
 
         RequestParamRecord params = toRequestParams(request, client.partnerCode());
-        if (!client.isServiceable(params)) {
-            return unavailable(partnerId, name, QuoteStatus.NOT_SERVICEABLE, "Partner API: lane not serviceable");
+        Serviceability serviceability = client.checkServiceability(params);
+        switch (serviceability.status()) {
+            case NOT_SERVICEABLE -> {
+                LOGGER.debug("Partner {} not serviceable {} -> {}: {}", name, params.sourcePinCode(),
+                        params.destinationPinCode(), serviceability.reason());
+                return unavailable(partnerId, name, QuoteStatus.NOT_SERVICEABLE, serviceability.reason());
+            }
+            // Fail-open: a broken serviceability API must not hide the partner; the rate call decides.
+            case UNKNOWN -> LOGGER.warn("Partner {} serviceability unknown {} -> {} ({}); pricing anyway",
+                    name, params.sourcePinCode(), params.destinationPinCode(), serviceability.reason());
+            case SERVICEABLE -> LOGGER.debug("Partner {} serviceable {} -> {}: {}", name, params.sourcePinCode(),
+                    params.destinationPinCode(), serviceability.reason());
         }
         RateResponse rate = client.getRate(params);
         return toPriced(partnerId, name, rate);

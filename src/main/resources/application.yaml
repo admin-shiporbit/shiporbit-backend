@@ -96,6 +96,7 @@ rate-aggregator:
     shipment-status: Delivered # ss: Delivered = forward. RTO / DTO price returns
     max-weight-kg: 20
     volumetric-divisor: 5000   # cgm = max(dead, LxWxH/divisor) - confirm divisor with Delhivery
+    pincode-endpoint: /c/api/pin-codes/json/   # B2C serviceability: ?filter_codes=<pin>
   shreemurti:
     username: ${SHREEMURTI_USERNAME}
     password: ${SHREEMURTI_PASSWORD}
@@ -104,6 +105,11 @@ rate-aggregator:
     ratecalculator-endpoint: /gateway/ure/api/external/rate-calculation/calculate/v2
     signin-type: EMAIL
     api-key: ${SHREEMURTI_API_KEY}
+    # Serviceability APIs use the same auth as the rate API: Bearer id_token + tenantid (no api-key).
+    serviceability-ecomm-endpoint: /gateway/serviceability/ecomm
+    serviceability-hyperlocal-endpoint: /gateway/serviceability/hyperlocal
+    serviceability-carriers: [SMILE]
+    serviceability-operation-type: PICKUP_DELIVERY
   ups:
     # Leave client id/secret empty to disable UPS (it's then skipped as not serviceable).
     client-id: ${UPS_CLIENT_ID:}
@@ -142,6 +148,9 @@ notification:
     parallelism: 4 # concurrent SMTP sends; keep <= 5 for Gmail
 
 shiporbit:
+  rates:
+    # Partner serviceability answers (Delhivery B2C/LTL, Shree Maruti) are cached per pincode / lane.
+    serviceability-ttl-minutes: 720   # 12 h; 0 = no cache
   partners:
     # Partners that may be quoted (/api/v1/rates/quotes and /api/v1/rates/compare).
     # Move a name between the lists to switch it on/off. disabled = skipped completely (no live-API call,

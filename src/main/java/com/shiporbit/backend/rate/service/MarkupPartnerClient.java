@@ -37,6 +37,11 @@ public class MarkupPartnerClient implements DeliveryPartnerClient {
 
     public boolean isServiceable(RequestParamRecord r) { return delegate.isServiceable(r); }
 
+    @Override
+    public com.shiporbit.backend.rate.serviceability.Serviceability checkServiceability(RequestParamRecord r) {
+        return delegate.checkServiceability(r);
+    }
+
     public RateResponse getRate(RequestParamRecord r) {
         RateResponse rate = delegate.getRate(r);
         RateResponse markedUp = new RateResponse(

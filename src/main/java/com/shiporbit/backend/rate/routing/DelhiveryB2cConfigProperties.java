@@ -12,6 +12,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param shipmentStatus     ss: Delivered (forward), RTO, DTO
  * @param maxWeightKg        dead weight below this goes to B2C; at or above it goes to LTL
  * @param volumetricDivisor  cm^3 per kg, used to send chargeable weight (cgm) - the API takes no dimensions
+ * @param pincodeEndpoint    B2C pincode serviceability: GET {pincodeEndpoint}?filter_codes=<pin>
  */
 @ConfigurationProperties(prefix = "rate-aggregator.delhivery-b2c")
 public record DelhiveryB2cConfigProperties(
@@ -21,7 +22,8 @@ public record DelhiveryB2cConfigProperties(
         String defaultMode,
         String shipmentStatus,
         Double maxWeightKg,
-        Integer volumetricDivisor
+        Integer volumetricDivisor,
+        String pincodeEndpoint
 ) {
     public DelhiveryB2cConfigProperties {
         ratecalculatorEndpoint = blank(ratecalculatorEndpoint) ? "/api/kinko/v1/invoice/charges/.json" : ratecalculatorEndpoint;
@@ -29,6 +31,7 @@ public record DelhiveryB2cConfigProperties(
         shipmentStatus = blank(shipmentStatus) ? "Delivered" : shipmentStatus;
         maxWeightKg = maxWeightKg == null ? 20.0 : maxWeightKg;
         volumetricDivisor = volumetricDivisor == null ? 5000 : volumetricDivisor;
+        pincodeEndpoint = blank(pincodeEndpoint) ? "/c/api/pin-codes/json/" : pincodeEndpoint;
     }
 
     private static boolean blank(String s) {

@@ -6,6 +6,9 @@ import com.shiporbit.backend.rate.auth.DelhiveryTokenFetcher;
 import com.shiporbit.backend.rate.dto.request.RequestParamRecord;
 import com.shiporbit.backend.rate.dto.response.RateResponse;
 import com.shiporbit.backend.rate.routing.DelhiveryConfigProperties;
+import com.shiporbit.backend.rate.serviceability.Serviceability;
+import com.shiporbit.backend.rate.serviceability.ServiceabilityCache;
+import com.shiporbit.backend.rate.serviceability.ServiceabilityJson;
 import com.shiporbit.backend.rate.util.CurlLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,14 +32,17 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
     private final DelhiveryConfigProperties delhiveryConfigProperties;
     private final CachingTokenProvider tokenProvider;
     private final DelhiveryB2cRateClient b2cRateClient;
+    private final ServiceabilityCache serviceabilityCache;
 
     public DelhiveryPartnerClient(RestClient delhiveryClient,
                                   DelhiveryConfigProperties delhiveryConfigProperties,
                                   DelhiveryTokenFetcher delhiveryTokenFetcher,
-                                  DelhiveryB2cRateClient b2cRateClient) {
+                                  DelhiveryB2cRateClient b2cRateClient,
+                                  ServiceabilityCache serviceabilityCache) {
         this.delhiveryClient = delhiveryClient;
         this.delhiveryConfigProperties = delhiveryConfigProperties;
         this.b2cRateClient = b2cRateClient;
+        this.serviceabilityCache = serviceabilityCache;
         // CachingTokenProvider is a plain object (not a @Component) on purpose: each
         // partner gets its own instance wrapping its own TokenFetcher. Built here so
         // Delhivery's token cache is scoped to this client.
@@ -55,10 +61,50 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
 
     @Override
     public boolean isServiceable(RequestParamRecord request) {
-        // TODO: replace with a real call to the pincode-service endpoint
-        // (delhiveryConfigProperties.pincodeEndpoint()) once its request/response
-        // contract has been confirmed via curl.
-        return true;
+        return !checkServiceability(request).notServiceable();
+    }
+
+    /**
+     * Same weight split as getRate(): below 20 kg -> B2C pin-codes API, otherwise -> LTL pincode-service.
+     * Both origin and destination are checked; each pincode answer is cached (ServiceabilityCache).
+     */
+    @Override
+    public Serviceability checkServiceability(RequestParamRecord request) {
+        if (b2cRateClient.handles(request)) {
+            return b2cRateClient.checkLane(request);
+        }
+        long weightKg = (long) Math.ceil((request.weight() == null ? 0 : request.weight()) / 1000.0);
+        Serviceability origin = ltlPincode(request.sourcePinCode(), weightKg);
+        Serviceability destination = ltlPincode(request.destinationPinCode(), weightKg);
+        return Serviceability.both(origin, destination);
+    }
+
+    // LTL: GET {router-url}/pincode-service/{pin}?weight=<w>, Bearer = LTL login JWT.
+    // Unconfirmed: weight unit (sent as kg - the sample used 200, which only makes sense as kg for B2B)
+    // and response shape (parsed by searching for a serviceable/isServiceable flag; not found = UNKNOWN).
+    private Serviceability ltlPincode(String pin, long weightKg) {
+        return serviceabilityCache.get("delhivery:ltl:pin:" + pin + ":w" + weightKg, () -> {
+            String path = delhiveryConfigProperties.pincodeEndpoint() + "/" + pin + "?weight=" + weightKg;
+            Object response;
+            try {
+                String token = tokenProvider.getValidToken().get("token");
+                response = delhiveryClient.get().uri(path)
+                        .header("Content-Type", "application/json")
+                        .header("Authorization", "Bearer " + token)
+                        .retrieve().body(Object.class);
+            } catch (HttpStatusCodeException e) {
+                LOGGER.warn("Delhivery LTL pincode-service {} for {}: {}", e.getStatusCode(), pin, e.getResponseBodyAsString());
+                return Serviceability.unknown("Delhivery LTL pincode-service HTTP " + e.getStatusCode().value());
+            } catch (RuntimeException e) {
+                LOGGER.warn("Delhivery LTL pincode-service failed for {}: {}", pin, e.getMessage());
+                return Serviceability.unknown("Delhivery LTL pincode-service unreachable");
+            }
+            LOGGER.debug("Delhivery LTL pincode-service response for {} (weight {} kg): {}", pin, weightKg, response);
+            return ServiceabilityJson.findFlag(response)
+                    .map(ok -> ok ? Serviceability.yes("LTL pin " + pin + " serviceable")
+                                  : Serviceability.no("Delhivery LTL does not serve pincode " + pin))
+                    .orElseGet(() -> Serviceability.unknown("Delhivery LTL pincode-service: no serviceable flag in response"));
+        });
     }
 
     /**

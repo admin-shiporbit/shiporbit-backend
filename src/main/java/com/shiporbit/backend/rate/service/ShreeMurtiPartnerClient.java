@@ -5,7 +5,11 @@ import com.shiporbit.backend.rate.auth.CachingTokenProvider;
 import com.shiporbit.backend.rate.auth.ShreeMurtiTokenFetcher;
 import com.shiporbit.backend.rate.dto.request.RequestParamRecord;
 import com.shiporbit.backend.rate.dto.response.RateResponse;
+import com.shiporbit.backend.rate.core.HyperlocalAddress;
 import com.shiporbit.backend.rate.routing.ShreeMurtiConfigProperties;
+import com.shiporbit.backend.rate.serviceability.Serviceability;
+import com.shiporbit.backend.rate.serviceability.ServiceabilityCache;
+import com.shiporbit.backend.rate.serviceability.ServiceabilityJson;
 import com.shiporbit.backend.rate.util.CurlLogger;
 import tools.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -17,6 +21,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,12 +48,15 @@ public class ShreeMurtiPartnerClient implements DeliveryPartnerClient {
     private final RestClient shreeMurtiClient;
     private final ShreeMurtiConfigProperties shreeMurtiConfigProperties;
     private final CachingTokenProvider tokenProvider;
+    private final ServiceabilityCache serviceabilityCache;
 
     public ShreeMurtiPartnerClient(RestClient shreeMurtiClient,
                                    ShreeMurtiConfigProperties shreeMurtiConfigProperties,
-                                   ShreeMurtiTokenFetcher shreeMurtiTokenFetcher) {
+                                   ShreeMurtiTokenFetcher shreeMurtiTokenFetcher,
+                                   ServiceabilityCache serviceabilityCache) {
         this.shreeMurtiClient = shreeMurtiClient;
         this.shreeMurtiConfigProperties = shreeMurtiConfigProperties;
+        this.serviceabilityCache = serviceabilityCache;
         // CachingTokenProvider is a plain object (not a @Component) on purpose: each
         // partner gets its own instance wrapping its own TokenFetcher. Built here so
         // ShreeMurti's token cache is scoped to this client.
@@ -67,7 +75,98 @@ public class ShreeMurtiPartnerClient implements DeliveryPartnerClient {
 
     @Override
     public boolean isServiceable(RequestParamRecord request) {
-        return true;
+        return !checkServiceability(request).notServiceable();
+    }
+
+    // ---- serviceability: same auth as the rate API (Bearer id_token + tenantid), no api-key ----
+    // Response shape not yet confirmed: parsed by searching for a serviceable/isServiceable flag.
+    // No flag found / HTTP error = UNKNOWN (quote still attempted). Check the DEBUG
+    // "ShreeMurti serviceability response" log line and tighten the parser once a real response is seen.
+
+    /** ECOMM lane check: POST /gateway/serviceability/ecomm. Cached per (from, to, payment mode). */
+    @Override
+    public Serviceability checkServiceability(RequestParamRecord request) {
+        boolean cod = Boolean.TRUE.equals(request.partnerOptions().get("cod"));
+        String paymentMode = cod ? "COD" : "PREPAID";
+        String key = "shreemurti:ecomm:" + request.sourcePinCode() + ":" + request.destinationPinCode() + ":" + paymentMode;
+        return serviceabilityCache.get(key, () -> {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("fromPincode", Integer.parseInt(request.sourcePinCode()));
+            body.put("toPincode", Integer.parseInt(request.destinationPinCode()));
+            body.put("paymentMode", paymentMode);
+            body.put("operationType", shreeMurtiConfigProperties.serviceabilityOperationType());
+            body.put("carriers", shreeMurtiConfigProperties.serviceabilityCarriers());
+            return callServiceability(shreeMurtiConfigProperties.serviceabilityEcommEndpoint(), body,
+                    request.sourcePinCode() + " -> " + request.destinationPinCode());
+        });
+    }
+
+    /**
+     * Hyperlocal check: POST /gateway/serviceability/hyperlocal. Needs address + pincode + lat/long for both ends
+     * (QuoteRequest.hyperlocal.pickup / drop). Not used by the quote flow yet - ShreeMurti hyperlocal is not
+     * priced (no hyperlocal rate API wired); exposed for POST /api/v1/rates/serviceability.
+     */
+    public Serviceability checkHyperlocal(HyperlocalAddress pickup, HyperlocalAddress drop, boolean cod) {
+        if (pickup == null || drop == null || !pickup.complete() || !drop.complete()) {
+            return Serviceability.unknown("Hyperlocal check needs address, pincode, latitude, longitude for pickup and drop");
+        }
+        String paymentMode = cod ? "COD" : "PREPAID";
+        String key = "shreemurti:hyperlocal:" + pickup.latitude() + "," + pickup.longitude() + ":"
+                + drop.latitude() + "," + drop.longitude() + ":" + paymentMode;
+        return serviceabilityCache.get(key, () -> {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("pickupAddress", address(pickup));
+            body.put("shippingAddress", address(drop));
+            body.put("paymentMode", paymentMode);
+            body.put("operationType", shreeMurtiConfigProperties.serviceabilityOperationType());
+            body.put("carriers", shreeMurtiConfigProperties.serviceabilityCarriers());
+            return callServiceability(shreeMurtiConfigProperties.serviceabilityHyperlocalEndpoint(), body,
+                    pickup.pincode() + " -> " + drop.pincode() + " (hyperlocal)");
+        });
+    }
+
+    private static Map<String, Object> address(HyperlocalAddress a) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("address", a.address());
+        m.put("pincode", Integer.parseInt(a.pincode()));
+        m.put("latitude", a.latitude());
+        m.put("longitude", a.longitude());
+        return m;
+    }
+
+    private Serviceability callServiceability(String endpoint, Map<String, Object> body, String lane) {
+        Map<String, String> headers;
+        try {
+            Map<String, String> token = tokenProvider.getValidToken();
+            headers = Map.of(
+                    "Content-Type", "application/json",
+                    "Accept", "application/json",
+                    "Authorization", "Bearer " + token.get("id_token"),
+                    "tenantid", token.get("tenantId"));
+        } catch (RuntimeException e) {
+            LOGGER.warn("ShreeMurti login failed for serviceability {}: {}", lane, e.getMessage());
+            return Serviceability.unknown("ShreeMurti login failed");
+        }
+        LOGGER.debug("Outgoing ShreeMurti serviceability request:\n{}",
+                CurlLogger.toCurl("POST", shreeMurtiConfigProperties.routerUrl() + endpoint, headers, body));
+        Object response;
+        try {
+            response = shreeMurtiClient.post().uri(endpoint)
+                    .headers(h -> headers.forEach(h::add))
+                    .body(OBJECT_MAPPER.writeValueAsString(body))   // String body => Content-Length, see OBJECT_MAPPER note
+                    .retrieve().body(Object.class);
+        } catch (HttpStatusCodeException e) {
+            LOGGER.warn("ShreeMurti serviceability {} for {}: {}", e.getStatusCode(), lane, e.getResponseBodyAsString());
+            return Serviceability.unknown("ShreeMurti serviceability HTTP " + e.getStatusCode().value());
+        } catch (RestClientException e) {
+            LOGGER.warn("ShreeMurti serviceability unreachable for {}: {}", lane, e.getMessage());
+            return Serviceability.unknown("ShreeMurti serviceability API unreachable");
+        }
+        LOGGER.debug("ShreeMurti serviceability response for {}: {}", lane, response);
+        return ServiceabilityJson.findFlag(response)
+                .map(ok -> ok ? Serviceability.yes("ShreeMurti serves " + lane)
+                              : Serviceability.no("ShreeMurti does not serve " + lane))
+                .orElseGet(() -> Serviceability.unknown("ShreeMurti serviceability: no serviceable flag in response"));
     }
 
     @Override

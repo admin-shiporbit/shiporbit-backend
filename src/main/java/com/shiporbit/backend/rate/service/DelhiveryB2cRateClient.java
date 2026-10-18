@@ -4,6 +4,8 @@ import com.shiporbit.backend.exception.PartnerApiException;
 import com.shiporbit.backend.rate.dto.request.RequestParamRecord;
 import com.shiporbit.backend.rate.dto.response.RateResponse;
 import com.shiporbit.backend.rate.routing.DelhiveryB2cConfigProperties;
+import com.shiporbit.backend.rate.serviceability.Serviceability;
+import com.shiporbit.backend.rate.serviceability.ServiceabilityCache;
 import com.shiporbit.backend.rate.util.CurlLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,10 +35,74 @@ public class DelhiveryB2cRateClient {
 
     private final RestClient delhiveryB2cClient;
     private final DelhiveryB2cConfigProperties props;
+    private final ServiceabilityCache serviceabilityCache;
 
-    public DelhiveryB2cRateClient(RestClient delhiveryB2cClient, DelhiveryB2cConfigProperties props) {
+    public DelhiveryB2cRateClient(RestClient delhiveryB2cClient, DelhiveryB2cConfigProperties props,
+                                  ServiceabilityCache serviceabilityCache) {
         this.delhiveryB2cClient = delhiveryB2cClient;
         this.props = props;
+        this.serviceabilityCache = serviceabilityCache;
+    }
+
+    // ---- serviceability: GET /c/api/pin-codes/json/?filter_codes=<pin> ----
+
+    /**
+     * Origin must allow pickup; destination must allow COD (COD shipments) or prepaid. Embargoed pins fail.
+     * Each pincode is fetched once and cached (ServiceabilityCache); the COD/prepaid rule is applied after,
+     * so one cached answer serves both payment modes.
+     */
+    public Serviceability checkLane(RequestParamRecord request) {
+        boolean cod = "cod".equalsIgnoreCase(request.paymentMode());
+        Serviceability origin = evaluate(pinRecord(request.sourcePinCode()), request.sourcePinCode(), true, cod);
+        Serviceability destination = evaluate(pinRecord(request.destinationPinCode()), request.destinationPinCode(), false, cod);
+        return Serviceability.both(origin, destination);
+    }
+
+    /** Cached raw pin flags; when SERVICEABLE, reason carries "pickup=Y,cod=Y,..." for evaluate(). */
+    private Serviceability pinRecord(String pin) {
+        return serviceabilityCache.get("delhivery:b2c:pin:" + pin, () -> fetchPin(pin));
+    }
+
+    private Serviceability fetchPin(String pin) {
+        if (props.apiToken() == null || props.apiToken().isBlank()) {
+            return Serviceability.unknown("Delhivery B2C api-token not configured");
+        }
+        String path = props.pincodeEndpoint() + "?filter_codes=" + pin;
+        Object response;
+        try {
+            response = delhiveryB2cClient.get().uri(path)
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", authHeader())
+                    .retrieve().body(Object.class);
+        } catch (HttpStatusCodeException e) {
+            LOGGER.warn("Delhivery B2C pincode API {} for {}: {}", e.getStatusCode(), pin, e.getResponseBodyAsString());
+            return Serviceability.unknown("Delhivery B2C pincode API HTTP " + e.getStatusCode().value());
+        } catch (RestClientException e) {
+            LOGGER.warn("Delhivery B2C pincode API unreachable for {}: {}", pin, e.getMessage());
+            return Serviceability.unknown("Delhivery B2C pincode API unreachable");
+        }
+        LOGGER.debug("Delhivery B2C pincode response for {}: {}", pin, response);
+        return DelhiveryPinParser.parse(response, pin);
+    }
+
+    private Serviceability evaluate(Serviceability s, String pin, boolean origin, boolean cod) {
+        if (s.status() != Serviceability.Status.SERVICEABLE) {
+            return s;
+        }
+        String flags = s.reason();
+        if (origin) {
+            return DelhiveryPinParser.flag(flags, "pickup")
+                    ? Serviceability.yes("origin " + pin + " pickup OK")
+                    : Serviceability.no("Delhivery: no pickup at origin " + pin);
+        }
+        String key = cod ? "cod" : "pre_paid";
+        return DelhiveryPinParser.flag(flags, key)
+                ? Serviceability.yes("destination " + pin + " " + key + " OK")
+                : Serviceability.no("Delhivery: " + (cod ? "COD" : "prepaid") + " not available at destination " + pin);
+    }
+
+    private String authHeader() {
+        return props.apiToken().startsWith("Token ") ? props.apiToken() : "Token " + props.apiToken();
     }
 
     /** True when this shipment should be priced on B2C: dead weight below maxWeightKg (default 20 kg). */
@@ -56,7 +122,7 @@ public class DelhiveryB2cRateClient {
         Map<String, Object> query = buildQuery(request);
         String path = UriComponentsBuilder.fromPath(props.ratecalculatorEndpoint())
                 .queryParams(toMultiValue(query)).build().toUriString();
-        String auth = props.apiToken().startsWith("Token ") ? props.apiToken() : "Token " + props.apiToken();
+        String auth = authHeader();
 
         LOGGER.debug("Outgoing Delhivery B2C rate request (dead weight {}g < {}kg):\n{}", request.weight(),
                 props.maxWeightKg(), CurlLogger.toCurl("GET", props.routerUrl() + path,
