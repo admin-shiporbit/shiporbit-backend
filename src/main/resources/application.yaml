@@ -1,33 +1,185 @@
 spring:
   application:
     name: backend
-#    Enable the H2 console for local dev
   datasource:
-    url: jdbc:h2:mem:shiporbit;DB_CLOSE_DELAY=1
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
-  h2:
-    console:
-      enabled: true
+    url: jdbc:postgresql://localhost:5432/shiporbit
+    driver-class-name: org.postgresql.Driver
+    username: shiporbit
+    password: shiporbit_dev
   jpa:
     hibernate:
       ddl-auto: none
     show-sql: true
   sql:
     init:
-      mode: always
+      mode: never
+  mail:
+    host: ${MAIL_HOST:smtp.zoho.in}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:no-reply@shiporbit.in}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
 server:
   port: 8080
 
 logging:
   level:
+    root: INFO
     org.springframework.security: DEBUG
+    com.shiporbit.backend: DEBUG
+  # trace_id: request header trace_id (TraceFilter). step: flow step 1, 2, 3a, 3a1 ... (Flow).
+  # %msg and %maskedEx mask secrets / PII (logback-spring.xml, LogMasker).
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [trace_id=%X{trace_id:-}] [%X{step:-}] [%thread] %logger{36} - %msg%n%maskedEx"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [trace_id=%X{trace_id:-}] [%X{step:-}] [%thread] %logger{36} - %msg%n%maskedEx"
+  file:
+    name: logs/shiporbit-backend.log
+
 jwt:
   secret: ${JWT_SECRET:EnTz5qcM2E3dGK9rRJtUismhICqcbFYpAHxvQb1sjBs=}
   expiration: ${JWT_EXPIRATION_MS:900000}
 
-#change enabled:true if authentication is required.
+delhivery:
+  api:
+    base-url: ${DELHIVERY_API_BASE_URL:https://ucp-egw.delhivery.com}
+    freight-calculator-path: /101/api/v1/freight/calculator
+    # Short-lived (~10 min) session token copied from one.delhivery.com's login - not a
+    # stable API key. Refresh it in the env var whenever it expires; ask Delhivery for a
+    # real server-to-server credential before relying on this in production.
+    bearer-token: ${DELHIVERY_API_BEARER_TOKEN:}
+
+# change enabled:true if authentication is required.
 app:
   security:
-    enabled: false #change to true for dev and prod
+    enabled: false # change to true for dev and prod
+    # Required when enabled=false: an existing user's email whose identity is used
+    # for every request in place of a real JWT principal (see SecurityConfig).
+    dev-user-email: "dev@shiporbit.local"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: Shiporbit Backend
+    description: Shipping aggregator API for Shiporbit. Refer https://www.shiporbit.in/ for more info.
+    version: 1.0.0
+
+rate-aggregator:
+  delhivery:
+    username: ${DELHIVERY_USERNAME}
+    password: ${DELHIVERY_PASSWORD}
+    router-url: https://ltl-clients-api-dev.delhivery.com
+    login-endpoint: /ums/login
+    pincode-endpoint: /pincode-service
+    ratecalculator-endpoint: /freight/estimate
+    connect-timeout-seconds: 2
+    read-timeout-seconds: 6
+  # Delhivery B2C (express parcel). Shipments with dead weight < max-weight-kg are priced here;
+  # heavier ones use the LTL API above.
+  delhivery-b2c:
+    router-url: ${DELHIVERY_B2C_BASE_URL:https://track.delhivery.com}
+    ratecalculator-endpoint: /api/kinko/v1/invoice/charges/.json
+    api-token: ${DELHIVERY_B2C_API_TOKEN:}
+    default-mode: S            # md: S = Surface, E = Express (request mode EXPRESS/AIR sends E)
+    shipment-status: Delivered # ss: Delivered = forward. RTO / DTO price returns
+    max-weight-kg: 20
+    volumetric-divisor: 5000   # cgm = max(dead, LxWxH/divisor) - confirm divisor with Delhivery
+    pincode-endpoint: /c/api/pin-codes/json/   # B2C serviceability: ?filter_codes=<pin>
+  shreemurti:
+    username: ${SHREEMURTI_USERNAME}
+    password: ${SHREEMURTI_PASSWORD}
+    router-url: https://apis.innofulfill.com
+    login-endpoint: /auth/login
+    ratecalculator-endpoint: /gateway/ure/api/external/rate-calculation/calculate/v2
+    signin-type: EMAIL
+    api-key: ${SHREEMURTI_API_KEY}
+    # Serviceability APIs use the same auth as the rate API: Bearer id_token + tenantid (no api-key).
+    serviceability-ecomm-endpoint: /gateway/serviceability/ecomm
+    serviceability-hyperlocal-endpoint: /gateway/serviceability/hyperlocal
+    serviceability-carriers: [SMILE]
+    serviceability-operation-type: PICKUP_DELIVERY
+  ups:
+    # Leave client id/secret empty to disable UPS (it's then skipped as not serviceable).
+    client-id: ${UPS_CLIENT_ID:}
+    client-secret: ${UPS_CLIENT_SECRET:}
+    account-number: ${UPS_ACCOUNT_NUMBER:}
+    # https://wwwcie.ups.com = test (CIE); https://onlinetools.ups.com = production
+    router-url: ${UPS_BASE_URL:https://wwwcie.ups.com}
+    token-endpoint: /security/v1/oauth/token
+    rating-endpoint: /api/rating/{version}/{requestoption}
+    api-version: v2409
+    transaction-source: shiporbit
+    shipper-name: ShipOrbit
+    shipper-address-line: ${UPS_SHIPPER_ADDRESS_LINE:NA}
+    shipper-city: ${UPS_SHIPPER_CITY:Noida}
+    connect-timeout-seconds: 5
+    read-timeout-seconds: 15
+  dhl:
+    # Leave key/secret/account empty to disable DHL (it's then skipped as not serviceable).
+    api-key: ${DHL_API_KEY:}
+    api-secret: ${DHL_API_SECRET:}
+    account-number: ${DHL_ACCOUNT_NUMBER:}
+    # .../mydhlapi/test = test (500 calls/day); .../mydhlapi = production
+    router-url: ${DHL_BASE_URL:https://express.api.dhl.com/mydhlapi/test}
+    rates-endpoint: /rates
+    shipper-city: ${DHL_SHIPPER_CITY:Noida}
+    connect-timeout-seconds: 5
+    read-timeout-seconds: 15
+
+notification:
+  email:
+    enabled: ${NOTIFICATION_EMAIL_ENABLED:true}
+    provider: smtp # smtp | ses (ses not implemented yet)
+    from: ${MAIL_FROM:no-reply@shiporbit.in}
+    from-name: ShipOrbit
+    reply-to: ${MAIL_REPLY_TO:}
+    parallelism: 4 # concurrent SMTP sends; keep <= 5 for Gmail
+
+shiporbit:
+  rates:
+    # Partner serviceability answers (Delhivery B2C/LTL, Shree Maruti) are cached per pincode / lane.
+    serviceability-ttl-minutes: 720   # 12 h; 0 = no cache
+  partners:
+    # Partners that may be quoted (/api/v1/rates/quotes and /api/v1/rates/compare).
+    # Move a name between the lists to switch it on/off. disabled = skipped completely (no live-API call,
+    # no rate-card price, not shown). Names = SO_DELIVERY_PARTNER_LIST.PARTNER_NAME:
+    # DELHIVERY, BLUEDART, DTDC, AMAZON_SHIPPING, BORZO, INDIA_POST, RIVIGO, SHADOWFAX, TCI, EKART,
+    # PIKNDEL, SAFEXPRESS, SHREE_MARUTI, XPRESSBEES. A name in neither list is not quoted.
+    enabled: [DELHIVERY, BLUEDART, DTDC, AMAZON_SHIPPING, BORZO, INDIA_POST, RIVIGO, SHADOWFAX, TCI, EKART, PIKNDEL, SAFEXPRESS, SHREE_MARUTI, XPRESSBEES]
+    disabled: []
+    # Carrier display data for POST /api/v1/rates/compare. Keys = SO_DELIVERY_PARTNER_LIST.ID.
+    # display-name / initials default from the DB name when missing. rating (0-5) and
+    # etd-min-days / etd-max-days are left out until real figures are known: they are returned
+    # as null, and "sort by delivery speed" stays disabled until every partner shown has an ETD.
+    profiles:
+      1: { display-name: Delhivery, initials: DH, color: "#ef4444" }
+      2: { display-name: Blue Dart, initials: BD, color: "#2563eb" }
+      3: { display-name: DTDC, initials: DT, color: "#6366f1" }
+      4: { display-name: Amazon Shipping, initials: AS, color: "#ff9900" }
+      5: { display-name: Borzo, initials: BZ, color: "#ec4899" }
+      6: { display-name: India Post, initials: IP, color: "#dc2626" }
+      7: { display-name: Rivigo, initials: RV, color: "#0ea5e9" }
+      8: { display-name: Shadowfax, initials: SF, color: "#8b5cf6" }
+      9: { display-name: TCI Express, initials: TC, color: "#0f766e" }
+      10: { display-name: Ekart, initials: EK, color: "#10b981" }
+      11: { display-name: Pikndel, initials: PK, color: "#f97316" }
+      12: { display-name: Safexpress, initials: SX, color: "#64748b" }
+      13: { display-name: Shree Maruti, initials: SM, color: "#b91c1c" }
+      14: { display-name: XpressBees, initials: XB, color: "#f59e0b" }

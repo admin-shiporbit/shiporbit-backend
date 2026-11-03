@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: shiporbit-postgres
+    environment:
+      POSTGRES_DB: shiporbit
+      POSTGRES_USER: shiporbit
+      POSTGRES_PASSWORD: shiporbit_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - shiporbit_pgdata:/var/lib/postgresql/data
+
+volumes:
+  shiporbit_pgdata:

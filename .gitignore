@@ -64,3 +64,11 @@ application-secret*.properties
 logs/
 tmp/
 temp/
+
+######################
+## Docs / scripts / data files (kept local, not committed)
+######################
+*.md
+*.py
+*.csv
+*.pdf

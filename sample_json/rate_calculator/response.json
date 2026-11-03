@@ -1,0 +1,167 @@
+{
+  "success": true,
+  "currency": "INR",
+  "isSample": true,
+  "deliveryMode": "Surface",
+  "fromPin": "400001",
+  "toPin": "560001",
+  "weight": "1",
+  "weightUnit": "kg",
+  "length": "10",
+  "width": "10",
+  "height": "10",
+  "dimensionUnit": "cm",
+  "isCOD": true,
+  "orderValue": "1500",
+  "actualWeight": 1,
+  "volumetricWeight": 0.2,
+  "chargeableWeight": 1,
+  "availablePartnerCount": 5,
+  "sortBy": "fare",
+  "sortOptions": [
+    {
+      "key": "fare",
+      "label": "Sort by fare",
+      "field": "result.total",
+      "order": "asc",
+      "enabled": true
+    },
+    {
+      "key": "speed",
+      "label": "Sort by delivery speed",
+      "field": "carrier.etd[0]",
+      "order": "asc",
+      "enabled": true
+    },
+    {
+      "key": "distance",
+      "label": "Sort by distance",
+      "field": "result.distanceKm",
+      "order": "asc",
+      "enabled": false,
+      "reason": "Partner-specific distance data is not available."
+    }
+  ],
+  "results": [
+    {
+      "carrier": {
+        "name": "Shadowfax",
+        "initials": "SF",
+        "color": "#8b5cf6",
+        "baseRate": 28,
+        "perKg": 22,
+        "codFlat": 28,
+        "codPct": 1,
+        "etd": [
+          2,
+          3
+        ],
+        "rating": 4.1,
+        "maxKg": 10
+      },
+      "result": {
+        "shipping": 50,
+        "cod": 28,
+        "total": 78,
+        "billable": 1,
+        "distanceKm": null
+      }
+    },
+    {
+      "carrier": {
+        "name": "DTDC",
+        "initials": "DT",
+        "color": "#6366f1",
+        "baseRate": 30,
+        "perKg": 25,
+        "codFlat": 30,
+        "codPct": 1.5,
+        "etd": [
+          3,
+          4
+        ],
+        "rating": 4.2,
+        "maxKg": 25
+      },
+      "result": {
+        "shipping": 55,
+        "cod": 30,
+        "total": 85,
+        "billable": 1,
+        "distanceKm": null
+      }
+    },
+    {
+      "carrier": {
+        "name": "Ekart",
+        "initials": "EK",
+        "color": "#10b981",
+        "baseRate": 32,
+        "perKg": 26,
+        "codFlat": 32,
+        "codPct": 1,
+        "etd": [
+          3,
+          5
+        ],
+        "rating": 4,
+        "maxKg": 20
+      },
+      "result": {
+        "shipping": 58,
+        "cod": 32,
+        "total": 90,
+        "billable": 1,
+        "distanceKm": null
+      }
+    },
+    {
+      "carrier": {
+        "name": "Delhivery",
+        "initials": "DH",
+        "color": "#ef4444",
+        "baseRate": 35,
+        "perKg": 28,
+        "codFlat": 35,
+        "codPct": 1.5,
+        "etd": [
+          2,
+          3
+        ],
+        "rating": 4.5,
+        "maxKg": 30
+      },
+      "result": {
+        "shipping": 63,
+        "cod": 35,
+        "total": 98,
+        "billable": 1,
+        "distanceKm": null
+      }
+    },
+    {
+      "carrier": {
+        "name": "XpressBees",
+        "initials": "XB",
+        "color": "#f59e0b",
+        "baseRate": 38,
+        "perKg": 30,
+        "codFlat": 38,
+        "codPct": 2,
+        "etd": [
+          2,
+          4
+        ],
+        "rating": 4.3,
+        "maxKg": 20
+      },
+      "result": {
+        "shipping": 68,
+        "cod": 38,
+        "total": 106,
+        "billable": 1,
+        "distanceKm": null
+      }
+    }
+  ]
+}
