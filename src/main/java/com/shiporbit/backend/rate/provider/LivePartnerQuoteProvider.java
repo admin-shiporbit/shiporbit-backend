@@ -2,6 +2,7 @@ package com.shiporbit.backend.rate.provider;
 
 import com.shiporbit.backend.dto.Dimension;
 import com.shiporbit.backend.error.ErrorCode;
+import com.shiporbit.backend.logging.Flow;
 import com.shiporbit.backend.exception.PartnerApiException;
 import com.shiporbit.backend.rate.core.ChargeLine;
 import com.shiporbit.backend.rate.core.QuoteRequest;
@@ -100,17 +101,44 @@ public class LivePartnerQuoteProvider {
      */
     public List<QuoteResult> quote(QuoteRequest request, Map<Integer, String> partnerNames,
                                    Predicate<String> partnerAllowed) {
-        Map<Integer, Future<QuoteResult>> futures = new LinkedHashMap<>();
+        Map<Integer, DeliveryPartnerClient> selected = new LinkedHashMap<>();
         clientByPartnerId.forEach((partnerId, client) -> {
             String name = partnerNames.getOrDefault(partnerId, client.partnerName());
             if (request.includesPartner(name) && partnerAllowed.test(name)) {
-                futures.put(partnerId, executor.submit(() -> quoteOne(request, partnerId, name, client)));
+                selected.put(partnerId, client);
             }
         });
+        if (selected.isEmpty()) {
+            Flow.step(LOGGER, "Live partner APIs: none selected (request partners filter / shiporbit.partners)");
+            return List.of();
+        }
 
         List<QuoteResult> results = new ArrayList<>();
-        futures.forEach((partnerId, future) -> results.add(await(future, partnerId,
-                partnerNames.getOrDefault(partnerId, clientByPartnerId.get(partnerId).partnerName()))));
+        try (Flow.Scope ignored = Flow.begin(LOGGER, "Live partner APIs: {} partner(s) in parallel, timeout {}s",
+                selected.size(), timeoutSeconds)) {
+            Map<Integer, Future<QuoteResult>> futures = new LinkedHashMap<>();
+            Map<Integer, Flow.Branch> branches = new LinkedHashMap<>();
+            selected.forEach((partnerId, client) -> {
+                String name = partnerNames.getOrDefault(partnerId, client.partnerName());
+                // Step number reserved here (submission order), sub-steps logged by the worker thread.
+                Flow.Branch branch = Flow.branch(LOGGER, "{}: live quote started", name);
+                branches.put(partnerId, branch);
+                futures.put(partnerId, executor.submit(() -> {
+                    try (Flow.Scope s = branch.enter()) {
+                        return quoteOne(request, partnerId, name, client);
+                    }
+                }));
+            });
+            futures.forEach((partnerId, future) -> {
+                // Timeout / failure lines are logged under that partner's step, not the parent's.
+                try (Flow.Scope s = branches.get(partnerId).enter()) {
+                    results.add(await(future, partnerId,
+                            partnerNames.getOrDefault(partnerId, clientByPartnerId.get(partnerId).partnerName())));
+                }
+            });
+            long priced = results.stream().filter(r -> r instanceof QuoteResult.Priced).count();
+            Flow.step(LOGGER, "Live partner APIs done: {} priced, {} unavailable", priced, results.size() - priced);
+        }
         return results;
     }
 
@@ -125,28 +153,40 @@ public class LivePartnerQuoteProvider {
         }
 
         RequestParamRecord params = toRequestParams(request, client.partnerCode());
-        Serviceability serviceability = client.checkServiceability(params);
+        long t0 = System.nanoTime();
+        Serviceability serviceability;
+        try (Flow.Scope s = Flow.begin(LOGGER, "{}: serviceability check {} -> {} ({} g, {})", name,
+                params.sourcePinCode(), params.destinationPinCode(), params.weight(), request.paymentMode())) {
+            serviceability = client.checkServiceability(params);
+        }
+        long serviceabilityMs = (System.nanoTime() - t0) / 1_000_000;
         switch (serviceability.status()) {
             case NOT_SERVICEABLE -> {
-                LOGGER.debug("Partner {} not serviceable {} -> {}: {}", name, params.sourcePinCode(),
-                        params.destinationPinCode(), serviceability.reason());
+                Flow.stepWarn(LOGGER, "{}: NOT_SERVICEABLE [{}] {} ({} ms) - rate not fetched", name,
+                        code(serviceability.errorCode()), serviceability.reason(), serviceabilityMs);
                 return unavailable(partnerId, name, QuoteStatus.NOT_SERVICEABLE, serviceability.errorCode(),
                         serviceability.reason());
             }
             // Strict: rates are fetched only when both pincodes are confirmed serviceable.
             // UNKNOWN (serviceability API error / unreadable answer) -> no rate call, partner shown as unavailable.
             case UNKNOWN -> {
-                LOGGER.warn("Partner {} serviceability not confirmed {} -> {} ({}); rate not fetched",
-                        name, params.sourcePinCode(), params.destinationPinCode(), serviceability.reason());
+                Flow.stepWarn(LOGGER, "{}: serviceability NOT CONFIRMED [{}] {} ({} ms) - rate not fetched", name,
+                        code(serviceability.errorCode()), serviceability.reason(), serviceabilityMs);
                 return unavailable(partnerId, name, QuoteStatus.PARTNER_API_ERROR,
                         serviceability.errorCode() == null ? ErrorCode.SERVICEABILITY_UNCONFIRMED : serviceability.errorCode(),
                         "Serviceability could not be confirmed: " + serviceability.reason());
             }
-            case SERVICEABLE -> LOGGER.debug("Partner {} serviceable {} -> {}: {}; fetching rate", name,
-                    params.sourcePinCode(), params.destinationPinCode(), serviceability.reason());
+            case SERVICEABLE -> Flow.step(LOGGER, "{}: SERVICEABLE ({}) ({} ms)", name, serviceability.reason(), serviceabilityMs);
         }
-        RateResponse rate = client.getRate(params);
-        return toPriced(partnerId, name, rate);
+        long t1 = System.nanoTime();
+        RateResponse rate;
+        try (Flow.Scope s = Flow.begin(LOGGER, "{}: fetching rate", name)) {
+            rate = client.getRate(params);
+        }
+        QuoteResult priced = toPriced(partnerId, name, rate);
+        Flow.step(LOGGER, "{}: priced - partner total {} (GST {}), customer total {} ({} ms)", name,
+                rate.finalFreight(), rate.gst(), ((QuoteResult.Priced) priced).total(), (System.nanoTime() - t1) / 1_000_000);
+        return priced;
     }
 
     private QuoteResult await(Future<QuoteResult> future, Integer partnerId, String name) {
@@ -154,7 +194,7 @@ public class LivePartnerQuoteProvider {
             return future.get(timeoutSeconds, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             future.cancel(true);
-            LOGGER.warn("Live rate API for partner {} timed out after {}s", name, timeoutSeconds);
+            Flow.stepWarn(LOGGER, "{}: timed out after {}s [{}]", name, timeoutSeconds, ErrorCode.PARTNER_TIMEOUT.code());
             return unavailable(partnerId, name, QuoteStatus.PARTNER_API_ERROR, ErrorCode.PARTNER_TIMEOUT,
                     "Partner API timed out after " + timeoutSeconds + "s");
         } catch (InterruptedException e) {
@@ -165,10 +205,10 @@ public class LivePartnerQuoteProvider {
             // Deliberate recovery boundary: one partner's failure must not fail the whole quote.
             Throwable cause = e.getCause();
             if (cause instanceof PartnerApiException pae) {
-                LOGGER.warn("Live rate API for partner {} failed (HTTP {}): {}", name, pae.httpStatus(), pae.getMessage());
+                Flow.stepWarn(LOGGER, "{}: failed [{}] (HTTP {}): {}", name, pae.errorCode().code(), pae.httpStatus(), pae.getMessage());
                 return unavailable(partnerId, name, QuoteStatus.PARTNER_API_ERROR, pae.errorCode(), pae.getMessage());
             }
-            LOGGER.error("Unexpected error from live rate API for partner {}", name, cause);
+            Flow.stepError(LOGGER, "{}: unexpected error [{}]", name, ErrorCode.INTERNAL_ERROR.code(), cause);
             return unavailable(partnerId, name, QuoteStatus.PARTNER_API_ERROR, ErrorCode.INTERNAL_ERROR,
                     "Unexpected error from partner API: " + cause.getClass().getSimpleName());
         }
@@ -226,6 +266,10 @@ public class LivePartnerQuoteProvider {
         MarginTaxPolicy.Totals totals = marginTaxPolicy.apply(lines);
         return new QuoteResult.Priced(partnerId, name, SERVICE_CODE, ServiceMode.SURFACE, null, SERVICE_CODE,
                 null, null, null, null, totals.lines(), totals.taxableAmount(), totals.gst(), totals.total());
+    }
+
+    private static String code(ErrorCode c) {
+        return c == null ? "-" : c.code();
     }
 
     private static void addIfNonZero(List<ChargeLine> lines, String code, BigDecimal amount) {

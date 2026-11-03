@@ -23,7 +23,10 @@ public record DelhiveryB2cConfigProperties(
         String shipmentStatus,
         Double maxWeightKg,
         Integer volumetricDivisor,
-        String pincodeEndpoint
+        String pincodeEndpoint,
+        String connectTimeoutSeconds,
+        String readTimeoutSeconds
+
 ) {
     public DelhiveryB2cConfigProperties {
         ratecalculatorEndpoint = blank(ratecalculatorEndpoint) ? "/api/kinko/v1/invoice/charges/.json" : ratecalculatorEndpoint;

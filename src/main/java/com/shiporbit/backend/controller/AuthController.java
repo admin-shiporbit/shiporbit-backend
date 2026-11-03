@@ -58,7 +58,8 @@ public class AuthController {
         SecurityContextHolder.clearContext();
 
 
-        log.info("user {} logged out successfully",userName);
+        com.shiporbit.backend.logging.Flow.step(log, "Logout: user {} logged out",
+                com.shiporbit.backend.logging.Mask.email(userName));
 
         return ResponseEntity.ok(Map.of("message","Logged out successfully", "user",userName));
     }

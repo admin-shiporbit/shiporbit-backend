@@ -13,6 +13,9 @@ import com.shiporbit.backend.rate.entity.ServiceMode;
 import com.shiporbit.backend.rate.routing.PartnerProfileProperties;
 import com.shiporbit.backend.rate.routing.PartnerProfileProperties.Profile;
 import com.shiporbit.backend.rate.service.RateCardLoader.LoadedService;
+import com.shiporbit.backend.logging.Flow;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -31,6 +34,8 @@ import java.util.Set;
 @Service
 public class RateCompareService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(RateCompareService.class);
+
     private final RateQuoteService quoteService;
     private final RateCardLoader loader;
     private final PartnerProfileProperties profiles;
@@ -45,6 +50,9 @@ public class RateCompareService {
         Set<ServiceMode> modes = CompareRatesMapper.modesFor(request.deliveryMode());
         QuoteRequest quote = CompareRatesMapper.toQuoteRequest(request);
         ChargeableWeight weights = CompareRatesMapper.displayWeights(quote);
+        Flow.step(LOGGER, "Compare request mapped: {} -> {}, mode {} -> {}, weight {} {} -> chargeable {} kg, COD {}, order value {}",
+                request.fromPin(), request.toPin(), request.deliveryMode(), modes, request.weight(), request.weightUnit(),
+                weights.chargeableWeightKg(), request.cod(), request.orderValue());
 
         Map<Integer, String> partnerNames = loader.partnerNames();
         Map<String, RateCardSnapshot> cards = new HashMap<>();          // cached; for COD rule + max weight
@@ -74,6 +82,9 @@ public class RateCompareService {
             }
         }
         results.sort(Comparator.comparing((CarrierResult c) -> c.result().total()).thenComparing(c -> c.carrier().name()));
+        Flow.step(LOGGER, "Compare response built: {} result(s) sorted by fare, {} unavailable, cheapest {}",
+                results.size(), unavailable.size(),
+                results.isEmpty() ? "-" : results.get(0).carrier().name() + " " + results.get(0).result().total());
 
         int partnerCount = (int) results.stream().map(c -> c.carrier().name()).distinct().count();
         boolean etdForAll = !results.isEmpty() && results.stream().allMatch(c -> Objects.nonNull(c.carrier().etd()));

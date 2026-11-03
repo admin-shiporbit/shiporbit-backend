@@ -15,6 +15,7 @@ import com.shiporbit.backend.rate.entity.DataStatus;
 import com.shiporbit.backend.rate.provider.LivePartnerQuoteProvider;
 import com.shiporbit.backend.rate.routing.PartnerAllowlistProperties;
 import com.shiporbit.backend.rate.service.RateCardLoader.LoadedService;
+import com.shiporbit.backend.logging.Flow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -79,25 +80,52 @@ public class RateQuoteService {
      * Used by quote() and by RateCompareService (frontend compare format).
      */
     public List<QuoteResult> quoteAll(QuoteRequest request) {
-        Map<Integer, String> partnerNames = loader.partnerNames();
-        PartnerFilter.requireKnown(request.partners(), partnerNames.values());
-        warnUnknownEnabledNamesOnce(partnerNames.values());
-        Set<Integer> livePartners = liveProvider.livePartnerIds();
+        try (Flow.Scope quoteScope = Flow.begin(LOGGER, "Quote: {} -> {}, {} package(s), {} kg dead weight, {}, declared {}, pickup {}",
+                request.originPincode(), request.destinationPincode(), request.packages().size(),
+                request.packages().stream().map(p -> p.totalDeadWeightKg()).reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add),
+                request.paymentMode(), request.declaredValue(), request.pickupDate())) {
 
-        List<LoadedService> services = loader.servicesOn(request.pickupDate()).stream()
-                .filter(s -> !livePartners.contains(s.service().partnerId()))
-                .filter(s -> s.service().partnerName() != null && request.includesPartner(s.service().partnerName()))
-                .filter(s -> allowlist.allows(s.service().partnerName()))      // shiporbit.partners.enabled
-                .toList();
-        Map<Integer, PartnerLane> lanes = services.isEmpty() ? Map.of()
-                : loader.lanes(request.originPincode(), request.destinationPincode());
+            Map<Integer, String> partnerNames = loader.partnerNames();
+            PartnerFilter.requireKnown(request.partners(), partnerNames.values());
+            warnUnknownEnabledNamesOnce(partnerNames.values());
+            Set<Integer> livePartners = liveProvider.livePartnerIds();
 
-        List<QuoteResult> results = new ArrayList<>(liveProvider.quote(request, partnerNames, allowlist::allows));
-        services.stream()
-                .map(s -> price(s, request, lanes.getOrDefault(s.service().partnerId(), PartnerLane.EMPTY)))
-                .forEach(results::add);
-        results.sort(Comparator.comparing(QuoteResult::partnerId).thenComparing(QuoteResult::serviceCode));
-        return results;
+            List<LoadedService> services = loader.servicesOn(request.pickupDate()).stream()
+                    .filter(s -> !livePartners.contains(s.service().partnerId()))
+                    .filter(s -> s.service().partnerName() != null && request.includesPartner(s.service().partnerName()))
+                    .filter(s -> allowlist.allows(s.service().partnerName()))      // shiporbit.partners.enabled
+                    .toList();
+            Flow.step(LOGGER, "Rate-card services selected: {} ({})", services.size(),
+                    services.stream().map(s -> s.service().partnerName() + "/" + s.service().serviceCode()).toList());
+
+            Map<Integer, PartnerLane> lanes = services.isEmpty() ? Map.of()
+                    : loader.lanes(request.originPincode(), request.destinationPincode());
+            Flow.step(LOGGER, "Lane loaded: pincode serviceability + zones for {} partner(s)", lanes.size());
+
+            List<QuoteResult> results = new ArrayList<>(liveProvider.quote(request, partnerNames, allowlist::allows));
+
+            List<QuoteResult> cardResults;
+            try (Flow.Scope cards = Flow.begin(LOGGER, "Rate-card pricing: {} service(s)", services.size())) {
+                cardResults = services.stream()
+                        .map(s -> price(s, request, lanes.getOrDefault(s.service().partnerId(), PartnerLane.EMPTY)))
+                        .peek(RateQuoteService::logCardResult)
+                        .toList();
+            }
+            results.addAll(cardResults);
+            results.sort(Comparator.comparing(QuoteResult::partnerId).thenComparing(QuoteResult::serviceCode));
+            long priced = results.stream().filter(r -> r instanceof QuoteResult.Priced).count();
+            Flow.step(LOGGER, "Quote done: {} priced, {} unavailable", priced, results.size() - priced);
+            return results;
+        }
+    }
+
+    private static void logCardResult(QuoteResult r) {
+        switch (r) {
+            case QuoteResult.Priced p -> Flow.step(LOGGER, "{}/{}: priced {} (zone {}, chargeable {} kg, card {})",
+                    p.partnerName(), p.serviceCode(), p.total(), p.locationKey(), p.chargeableWeightKg(), p.rateCardVersion());
+            case QuoteResult.Unavailable u -> Flow.step(LOGGER, "{}/{}: {} [{}] {}",
+                    u.partnerName(), u.serviceCode(), u.status(), u.errorCode(), u.reason());
+        }
     }
 
     /** A typo in shiporbit.partners.enabled silently disables a partner, so say so once (names come from the DB). */

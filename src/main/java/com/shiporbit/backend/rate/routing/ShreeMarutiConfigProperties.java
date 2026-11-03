@@ -11,7 +11,7 @@ import java.util.List;
  * @param serviceabilityOperationType      default PICKUP_DELIVERY
  */
 @ConfigurationProperties(prefix = "rate-aggregator.shreemurti")
-public record ShreeMurtiConfigProperties(
+public record ShreeMarutiConfigProperties(
         String userName,
         String password,
         String routerUrl,
@@ -25,9 +25,11 @@ public record ShreeMurtiConfigProperties(
         String serviceabilityEcommEndpoint,
         String serviceabilityHyperlocalEndpoint,
         List<String> serviceabilityCarriers,
-        String serviceabilityOperationType
+        String serviceabilityOperationType,
+        String connectTimeoutSeconds,
+        String readTimeoutSeconds
 ) {
-    public ShreeMurtiConfigProperties {
+    public ShreeMarutiConfigProperties {
         serviceabilityEcommEndpoint = blank(serviceabilityEcommEndpoint) ? "/gateway/serviceability/ecomm" : serviceabilityEcommEndpoint;
         serviceabilityHyperlocalEndpoint = blank(serviceabilityHyperlocalEndpoint) ? "/gateway/serviceability/hyperlocal" : serviceabilityHyperlocalEndpoint;
         serviceabilityCarriers = serviceabilityCarriers == null || serviceabilityCarriers.isEmpty() ? List.of("SMILE") : List.copyOf(serviceabilityCarriers);

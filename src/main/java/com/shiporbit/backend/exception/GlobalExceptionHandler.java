@@ -1,6 +1,7 @@
 package com.shiporbit.backend.exception;
 
 import com.shiporbit.backend.error.ErrorCode;
+import com.shiporbit.backend.logging.Flow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -77,9 +78,9 @@ public class GlobalExceptionHandler {
     private ResponseEntity<ErrorResponse> respond(ErrorCode code, String message, Throwable ex) {
         String errorId = UUID.randomUUID().toString();
         if (code.httpStatus().is5xxServerError()) {
-            LOGGER.error("Error id {} [{}] {}", errorId, code.code(), message, ex);
+            Flow.stepError(LOGGER, "Request failed [{}] errorId={} : {}", code.code(), errorId, message, ex);
         } else {
-            LOGGER.warn("Error id {} [{}] {}", errorId, code.code(), message);
+            Flow.stepWarn(LOGGER, "Request rejected [{}] errorId={} : {}", code.code(), errorId, message);
         }
         return ResponseEntity.status(code.httpStatus()).body(ErrorResponse.of(errorId, code, message));
     }

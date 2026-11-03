@@ -24,6 +24,8 @@ public class NotificationExecutorConfig {
         executor.setMaxPoolSize(parallelism);
         executor.setQueueCapacity(1_000);
         executor.setThreadNamePrefix("notify-");
+        // Carry trace_id + flow step into pool threads (logging.Flow).
+        executor.setTaskDecorator(com.shiporbit.backend.logging.Flow::wrap);
         // Queue full: run in the caller's thread instead of dropping the email.
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.setWaitForTasksToCompleteOnShutdown(true);

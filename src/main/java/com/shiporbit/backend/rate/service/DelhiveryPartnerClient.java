@@ -72,8 +72,10 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
     @Override
     public Serviceability checkServiceability(RequestParamRecord request) {
         if (b2cRateClient.handles(request)) {
+            com.shiporbit.backend.logging.Flow.step(LOGGER, "Delhivery: B2C pin-codes API for origin and destination");
             return b2cRateClient.checkLane(request);
         }
+        com.shiporbit.backend.logging.Flow.step(LOGGER, "Delhivery: LTL pincode-service for origin and destination");
         long weightKg = (long) Math.ceil((request.weight() == null ? 0 : request.weight()) / 1000.0);
         Serviceability origin = ltlPincode(request.sourcePinCode(), weightKg);
         Serviceability destination = ltlPincode(request.destinationPinCode(), weightKg);
@@ -115,10 +117,12 @@ public class DelhiveryPartnerClient implements DeliveryPartnerClient {
     @Override
     public RateResponse getRate(RequestParamRecord request) {
         if (b2cRateClient.handles(request)) {
-            LOGGER.debug("Fetching Delhivery B2C rate: {} -> {}, weight={}g", request.sourcePinCode(), request.destinationPinCode(), request.weight());
+            com.shiporbit.backend.logging.Flow.step(LOGGER, "Delhivery: B2C rate API ({} g < B2C limit) {} -> {}",
+                    request.weight(), request.sourcePinCode(), request.destinationPinCode());
             return b2cRateClient.getRate(request, partnerCode(), partnerName());
         }
-        LOGGER.debug("Fetching Delhivery LTL rate: {} -> {}, weight={}g", request.sourcePinCode(), request.destinationPinCode(), request.weight());
+        com.shiporbit.backend.logging.Flow.step(LOGGER, "Delhivery: LTL rate API ({} g >= B2C limit) {} -> {}",
+                request.weight(), request.sourcePinCode(), request.destinationPinCode());
         String token = tokenProvider.getValidToken().get("token");
 
         Map<String, Object> requestBody = buildRequestBody(request);

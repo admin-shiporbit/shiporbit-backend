@@ -7,7 +7,7 @@ import com.shiporbit.backend.rate.auth.ShreeMurtiTokenFetcher;
 import com.shiporbit.backend.rate.dto.request.RequestParamRecord;
 import com.shiporbit.backend.rate.dto.response.RateResponse;
 import com.shiporbit.backend.rate.core.HyperlocalAddress;
-import com.shiporbit.backend.rate.routing.ShreeMurtiConfigProperties;
+import com.shiporbit.backend.rate.routing.ShreeMarutiConfigProperties;
 import com.shiporbit.backend.rate.serviceability.Serviceability;
 import com.shiporbit.backend.rate.serviceability.ServiceabilityCache;
 import com.shiporbit.backend.rate.serviceability.ServiceabilityJson;
@@ -47,16 +47,16 @@ public class ShreeMurtiPartnerClient implements DeliveryPartnerClient {
     // there are now two RestClient beans in the context (delhiveryClient, shreeMurtiClient),
     // so Spring needs the parameter name to disambiguate by bean name.
     private final RestClient shreeMurtiClient;
-    private final ShreeMurtiConfigProperties shreeMurtiConfigProperties;
+    private final ShreeMarutiConfigProperties shreeMarutiConfigProperties;
     private final CachingTokenProvider tokenProvider;
     private final ServiceabilityCache serviceabilityCache;
 
     public ShreeMurtiPartnerClient(RestClient shreeMurtiClient,
-                                   ShreeMurtiConfigProperties shreeMurtiConfigProperties,
+                                   ShreeMarutiConfigProperties shreeMarutiConfigProperties,
                                    ShreeMurtiTokenFetcher shreeMurtiTokenFetcher,
                                    ServiceabilityCache serviceabilityCache) {
         this.shreeMurtiClient = shreeMurtiClient;
-        this.shreeMurtiConfigProperties = shreeMurtiConfigProperties;
+        this.shreeMarutiConfigProperties = shreeMarutiConfigProperties;
         this.serviceabilityCache = serviceabilityCache;
         // CachingTokenProvider is a plain object (not a @Component) on purpose: each
         // partner gets its own instance wrapping its own TokenFetcher. Built here so
@@ -95,9 +95,9 @@ public class ShreeMurtiPartnerClient implements DeliveryPartnerClient {
             body.put("fromPincode", Integer.parseInt(request.sourcePinCode()));
             body.put("toPincode", Integer.parseInt(request.destinationPinCode()));
             body.put("paymentMode", paymentMode);
-            body.put("operationType", shreeMurtiConfigProperties.serviceabilityOperationType());
-            body.put("carriers", shreeMurtiConfigProperties.serviceabilityCarriers());
-            return callServiceability(shreeMurtiConfigProperties.serviceabilityEcommEndpoint(), body,
+            body.put("operationType", shreeMarutiConfigProperties.serviceabilityOperationType());
+            body.put("carriers", shreeMarutiConfigProperties.serviceabilityCarriers());
+            return callServiceability(shreeMarutiConfigProperties.serviceabilityEcommEndpoint(), body,
                     request.sourcePinCode() + " -> " + request.destinationPinCode());
         });
     }
@@ -119,9 +119,9 @@ public class ShreeMurtiPartnerClient implements DeliveryPartnerClient {
             body.put("pickupAddress", address(pickup));
             body.put("shippingAddress", address(drop));
             body.put("paymentMode", paymentMode);
-            body.put("operationType", shreeMurtiConfigProperties.serviceabilityOperationType());
-            body.put("carriers", shreeMurtiConfigProperties.serviceabilityCarriers());
-            return callServiceability(shreeMurtiConfigProperties.serviceabilityHyperlocalEndpoint(), body,
+            body.put("operationType", shreeMarutiConfigProperties.serviceabilityOperationType());
+            body.put("carriers", shreeMarutiConfigProperties.serviceabilityCarriers());
+            return callServiceability(shreeMarutiConfigProperties.serviceabilityHyperlocalEndpoint(), body,
                     pickup.pincode() + " -> " + drop.pincode() + " (hyperlocal)");
         });
     }
@@ -149,7 +149,7 @@ public class ShreeMurtiPartnerClient implements DeliveryPartnerClient {
             return Serviceability.unknown(e instanceof PartnerApiException pae ? pae.errorCode() : ErrorCode.PARTNER_AUTH_FAILED, "ShreeMurti login failed: " + e.getMessage());
         }
         LOGGER.debug("Outgoing ShreeMurti serviceability request:\n{}",
-                CurlLogger.toCurl("POST", shreeMurtiConfigProperties.routerUrl() + endpoint, headers, body));
+                CurlLogger.toCurl("POST", shreeMarutiConfigProperties.routerUrl() + endpoint, headers, body));
         Object response;
         try {
             response = shreeMurtiClient.post().uri(endpoint)
@@ -176,7 +176,7 @@ public class ShreeMurtiPartnerClient implements DeliveryPartnerClient {
         String token = tokenProvider.getValidToken().get("id_token");
         String tenantId = tokenProvider.getValidToken().get("tenantId");
         Map<String, Object> requestBody = buildRequestBody(request);
-        String url = shreeMurtiConfigProperties.routerUrl() + shreeMurtiConfigProperties.rateCalculatorEndpoint();
+        String url = shreeMarutiConfigProperties.routerUrl() + shreeMarutiConfigProperties.rateCalculatorEndpoint();
         // Confirmed final contract (2026-10-02): header name is lowercase "tenantid"
         // (not "tenantId"/"tanentId"). "api-key" is NOT required - confirmed by a
         // direct call outside this app with only the bearer token + tenantid. Added
@@ -199,7 +199,7 @@ public class ShreeMurtiPartnerClient implements DeliveryPartnerClient {
         Map<String, Object> response;
         try {
             response = shreeMurtiClient.post()
-                    .uri(shreeMurtiConfigProperties.rateCalculatorEndpoint())
+                    .uri(shreeMarutiConfigProperties.rateCalculatorEndpoint())
                     .headers(h -> headers.forEach(h::add))
                     .body(jsonBody)
                     .retrieve()

@@ -39,7 +39,7 @@ class DelhiveryB2cRateClientTest {
 
     @Test
     void queryMatchesDelhiveryCurl() {
-        var props = new DelhiveryB2cConfigProperties("https://staging-express.delhivery.com", null, "x", null, null, null, null, null);
+        var props = new DelhiveryB2cConfigProperties("https://staging-express.delhivery.com", null, "x", null, null, null, null, null,null,null);
         var client = new DelhiveryB2cRateClient(null, props, null);
         Map<String, Object> q = client.buildQuery(req(2000, "cod", 10, 10, 10));
         assertEquals("S", q.get("md"));

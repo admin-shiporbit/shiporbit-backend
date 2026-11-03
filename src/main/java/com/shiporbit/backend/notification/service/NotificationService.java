@@ -92,11 +92,23 @@ public class NotificationService {
             unique.putIfAbsent(recipient.email().trim().toLowerCase(Locale.ROOT), recipient);
         }
 
+        com.shiporbit.backend.logging.Flow.step(log, "Email {}: {} unique recipient(s), sending in parallel",
+                purpose, unique.size());
         return unique.entrySet().stream()
-                .map(e -> CompletableFuture.supplyAsync(
-                        () -> new RecipientResult(e.getKey(),
-                                sendOne(channel, e.getValue(), e.getKey(), purpose, sharedVars, idempotencyPrefix)),
-                        executor))
+                .map(e -> {
+                    // Step reserved here (stable order); the pool thread logs under it, keeping the trace_id.
+                    com.shiporbit.backend.logging.Flow.Branch branch = com.shiporbit.backend.logging.Flow.branch(
+                            log, "Email {} to {}: queued", purpose, com.shiporbit.backend.logging.Mask.email(e.getKey()));
+                    return CompletableFuture.supplyAsync(() -> {
+                        try (com.shiporbit.backend.logging.Flow.Scope s = branch.enter()) {
+                            NotificationResponse r = sendOne(channel, e.getValue(), e.getKey(), purpose, sharedVars,
+                                    idempotencyPrefix);
+                            com.shiporbit.backend.logging.Flow.step(log, "Email {} to {}: {}", purpose,
+                                    com.shiporbit.backend.logging.Mask.email(e.getKey()), r.isSuccess() ? "sent" : "NOT sent");
+                            return new RecipientResult(e.getKey(), r);
+                        }
+                    }, executor);
+                })
                 .toList();
     }
 

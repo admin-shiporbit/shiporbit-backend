@@ -28,6 +28,6 @@ public class RateCardCacheService {
             allEntries = true)
     public void evictAll() {
         serviceabilityCache.evictAll();
-        LOGGER.info("Rate-card and partner serviceability caches cleared");
+        com.shiporbit.backend.logging.Flow.step(LOGGER, "Cache: rate-card and partner serviceability caches cleared");
     }
 }

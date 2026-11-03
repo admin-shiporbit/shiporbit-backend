@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logging for ShipOrbit.
+  - Every line: trace_id (from the request header trace_id, see TraceFilter) and the flow step (1, 2, 3a, 3a1 ...).
+  - %m / %msg / %message are replaced by MaskingMessageConverter: secrets, JWTs, emails, phone numbers are masked
+    in EVERY line, including third-party libraries. Stack traces go through %maskedEx (MaskingThrowableConverter).
+  - Patterns, levels and the file name stay in application.yaml (logging.*).
+-->
+<configuration>
+    <conversionRule conversionWord="m" converterClass="com.shiporbit.backend.logging.MaskingMessageConverter"/>
+    <conversionRule conversionWord="msg" converterClass="com.shiporbit.backend.logging.MaskingMessageConverter"/>
+    <conversionRule conversionWord="message" converterClass="com.shiporbit.backend.logging.MaskingMessageConverter"/>
+    <conversionRule conversionWord="maskedEx" converterClass="com.shiporbit.backend.logging.MaskingThrowableConverter"/>
+
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <property name="LOG_FILE" value="${LOG_FILE:-${LOG_PATH:-${LOG_TEMP:-${java.io.tmpdir:-/tmp}}/}spring.log}"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <include resource="org/springframework/boot/logging/logback/file-appender.xml"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

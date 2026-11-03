@@ -2,6 +2,9 @@ package com.shiporbit.backend.rate.serviceability;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.shiporbit.backend.logging.Flow;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +19,8 @@ import java.util.function.Supplier;
  */
 @Component
 public class ServiceabilityCache {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ServiceabilityCache.class);
 
     private final Cache<String, Serviceability> cache;
 
@@ -32,9 +37,17 @@ public class ServiceabilityCache {
     public Serviceability get(String key, Supplier<Serviceability> loader) {
         Serviceability cached = cache.getIfPresent(key);
         if (cached != null) {
+            Flow.step(LOGGER, "Serviceability {}: {} (cached)", key, cached.status());
             return cached;
         }
-        Serviceability fresh = loader.get();
+        long start = System.nanoTime();
+        Serviceability fresh;
+        try (Flow.Scope s = Flow.begin(LOGGER, "Serviceability {}: not cached, calling partner API", key)) {
+            fresh = loader.get();
+        }
+        Flow.step(LOGGER, "Serviceability {}: {}{} ({} ms, {})", key, fresh.status(),
+                fresh.errorCode() == null ? "" : " [" + fresh.errorCode().code() + "]",
+                (System.nanoTime() - start) / 1_000_000, fresh.cacheable() ? "cached" : "not cached - retried next request");
         if (fresh.cacheable()) {
             cache.put(key, fresh);
         }

@@ -1,5 +1,9 @@
 package com.shiporbit.backend.security;
 
+import com.shiporbit.backend.logging.Flow;
+import com.shiporbit.backend.logging.Mask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +32,8 @@ import java.io.IOException;
  */
 public class DevAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(DevAuthenticationFilter.class);
+
     private final UserDetails devPrincipal;
 
     public DevAuthenticationFilter(UserDetails devPrincipal) {
@@ -51,6 +57,8 @@ public class DevAuthenticationFilter extends OncePerRequestFilter {
                     new WebAuthenticationDetailsSource().buildDetails(request)
             );
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            Flow.step(LOGGER, "Auth: security disabled (app.security.enabled=false) - acting as dev user {}",
+                    Mask.email(devPrincipal.getUsername()));
         }
 
         filterChain.doFilter(request, response);

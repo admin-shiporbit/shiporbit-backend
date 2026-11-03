@@ -37,8 +37,11 @@ logging:
     root: INFO
     org.springframework.security: DEBUG
     com.shiporbit.backend: DEBUG
+  # trace_id: request header trace_id (TraceFilter). step: flow step 1, 2, 3a, 3a1 ... (Flow).
+  # %msg and %maskedEx mask secrets / PII (logback-spring.xml, LogMasker).
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [trace_id=%X{trace_id:-}] [%X{step:-}] [%thread] %logger{36} - %msg%n%maskedEx"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [trace_id=%X{trace_id:-}] [%X{step:-}] [%thread] %logger{36} - %msg%n%maskedEx"
   file:
     name: logs/shiporbit-backend.log
 
@@ -86,6 +89,8 @@ rate-aggregator:
     login-endpoint: /ums/login
     pincode-endpoint: /pincode-service
     ratecalculator-endpoint: /freight/estimate
+    connect-timeout-seconds: 2
+    read-timeout-seconds: 6
   # Delhivery B2C (express parcel). Shipments with dead weight < max-weight-kg are priced here;
   # heavier ones use the LTL API above.
   delhivery-b2c:

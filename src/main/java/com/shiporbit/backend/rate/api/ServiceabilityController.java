@@ -10,7 +10,10 @@ import com.shiporbit.backend.rate.serviceability.Serviceability;
 import com.shiporbit.backend.rate.serviceability.ServiceabilityCheckRequest;
 import com.shiporbit.backend.rate.serviceability.ServiceabilityCheckResponse;
 import com.shiporbit.backend.rate.serviceability.ServiceabilityCheckResponse.Result;
+import com.shiporbit.backend.logging.Flow;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,6 +33,8 @@ import java.util.Map;
 @RequestMapping("/api/v1/rates/serviceability")
 public class ServiceabilityController {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ServiceabilityController.class);
+
     private final DelhiveryPartnerClient delhivery;
     private final DelhiveryB2cRateClient delhiveryB2c;
     private final ShreeMurtiPartnerClient shreeMurti;
@@ -45,17 +50,29 @@ public class ServiceabilityController {
     public ServiceabilityCheckResponse check(@Valid @RequestBody ServiceabilityCheckRequest request) {
         RequestParamRecord params = toParams(request);
         List<Result> results = new ArrayList<>();
+        Flow.step(LOGGER, "Serviceability check: {} -> {}, {} kg, {}, partners {}", request.originPincode(),
+                request.destinationPincode(), request.weightKg(), request.paymentMode(),
+                request.partners() == null || request.partners().isEmpty() ? "ALL" : request.partners());
         if (request.wants("DELHIVERY")) {
             String api = delhiveryB2c.handles(params) ? "B2C" : "LTL";
-            results.add(result("DELHIVERY", api, delhivery.checkServiceability(params)));
-        }
-        if (request.wants("SHREE_MARUTI")) {
-            results.add(result("SHREE_MARUTI", "ECOMM", shreeMurti.checkServiceability(params)));
-            if (request.hyperlocalPickup() != null || request.hyperlocalDrop() != null) {
-                results.add(result("SHREE_MARUTI", "HYPERLOCAL", shreeMurti.checkHyperlocal(
-                        request.hyperlocalPickup(), request.hyperlocalDrop(), request.paymentMode() == PaymentMode.COD)));
+            try (Flow.Scope s = Flow.begin(LOGGER, "DELHIVERY ({})", api)) {
+                results.add(result("DELHIVERY", api, delhivery.checkServiceability(params)));
             }
         }
+        if (request.wants("SHREE_MARUTI")) {
+            try (Flow.Scope s = Flow.begin(LOGGER, "SHREE_MARUTI (ECOMM)")) {
+                results.add(result("SHREE_MARUTI", "ECOMM", shreeMurti.checkServiceability(params)));
+            }
+            if (request.hyperlocalPickup() != null || request.hyperlocalDrop() != null) {
+                try (Flow.Scope s = Flow.begin(LOGGER, "SHREE_MARUTI (HYPERLOCAL)")) {
+                    results.add(result("SHREE_MARUTI", "HYPERLOCAL", shreeMurti.checkHyperlocal(
+                            request.hyperlocalPickup(), request.hyperlocalDrop(), request.paymentMode() == PaymentMode.COD)));
+                }
+            }
+        }
+        Flow.step(LOGGER, "Serviceability results: {}", results.stream()
+                .map(r -> r.partner() + "/" + r.api() + "=" + r.status() + (r.errorCode() == null ? "" : "[" + r.errorCode() + "]"))
+                .toList());
         return new ServiceabilityCheckResponse(request.originPincode(), request.destinationPincode(), results);
     }
 

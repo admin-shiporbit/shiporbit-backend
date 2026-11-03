@@ -19,8 +19,12 @@ public class CachingTokenProvider {
 
     public synchronized Map<String,String> getValidToken() {
         if(cache == null || Instant.now().isAfter(cache.expiresAt())){
-            LOGGER.debug("Token cache miss/expired for {}, fetching a new token", tokenFetcher.getClass().getSimpleName());
+            String fetcher = tokenFetcher.getClass().getSimpleName();
+            long start = System.nanoTime();
+            com.shiporbit.backend.logging.Flow.step(LOGGER, "Partner token: none cached, logging in ({})", fetcher);
             cache = tokenFetcher.fetch();
+            com.shiporbit.backend.logging.Flow.step(LOGGER, "Partner token: received ({}), valid until {}, {} ms",
+                    fetcher, cache.expiresAt(), (System.nanoTime() - start) / 1_000_000);
         } else {
             LOGGER.debug("Reusing cached token for {}, valid until {}", tokenFetcher.getClass().getSimpleName(), cache.expiresAt());
         }

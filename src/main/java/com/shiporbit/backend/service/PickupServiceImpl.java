@@ -1,6 +1,10 @@
 package com.shiporbit.backend.service;
 
 import com.shiporbit.backend.dto.AddressRequest;
+import com.shiporbit.backend.logging.Flow;
+import com.shiporbit.backend.logging.Mask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.shiporbit.backend.dto.AddressResponse;
 import com.shiporbit.backend.entity.PickupEntity;
 import com.shiporbit.backend.entity.StateEntity;
@@ -19,6 +23,8 @@ import java.util.Comparator;
 
 @Service
 public class PickupServiceImpl implements PickupService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PickupServiceImpl.class);
 
     private final PickupRepository pickupRepository;
     private final UserRepository userRepository;
@@ -41,12 +47,14 @@ public class PickupServiceImpl implements PickupService {
             throw new IllegalArgumentException("Authenticated user not found");
         }
 
-        return pickupRepository.findAllByUser_Id(userId).stream()
+        List<AddressResponse> addresses = pickupRepository.findAllByUser_Id(userId).stream()
                 .sorted(Comparator
                         .comparing(PickupEntity::isDefault).reversed()
                         .thenComparing(PickupEntity::getCreatedAt, Comparator.reverseOrder()))
                 .map(this::toResponse)
                 .toList();
+        Flow.step(LOGGER, "Pickup: {} address(es) loaded for user {}", addresses.size(), userId);
+        return addresses;
     }
 
     @Override
@@ -59,6 +67,8 @@ public class PickupServiceImpl implements PickupService {
 
         List<PickupEntity> existingAddresses = pickupRepository.findAllByUser_Id(userId);
         boolean makeDefault = request.isDefault() || existingAddresses.isEmpty();
+        Flow.step(LOGGER, "Pickup: adding address for user {} (pincode {}, state {}, default {}, existing {})",
+                userId, request.pinCode(), state.getCode(), makeDefault, existingAddresses.size());
 
         if (makeDefault) {
             existingAddresses.stream()
@@ -72,7 +82,9 @@ public class PickupServiceImpl implements PickupService {
         applyRequest(address, request, state);
         address.setDefault(makeDefault);
 
-        return toResponse(pickupRepository.save(address));
+        PickupEntity saved = pickupRepository.save(address);
+        Flow.step(LOGGER, "Pickup: address saved id={}", saved.getId());
+        return toResponse(saved);
     }
 
     @Override
@@ -93,7 +105,9 @@ public class PickupServiceImpl implements PickupService {
         }
 
         applyRequest(address, request, state);
-        return toResponse(pickupRepository.save(address));
+        PickupEntity saved = pickupRepository.save(address);
+        Flow.step(LOGGER, "Pickup: address {} updated for user {} (default {})", addressId, userId, saved.isDefault());
+        return toResponse(saved);
     }
 
     @Override
@@ -103,6 +117,7 @@ public class PickupServiceImpl implements PickupService {
         boolean deletedDefault = address.isDefault();
         pickupRepository.delete(address);
         pickupRepository.flush();
+        Flow.step(LOGGER, "Pickup: address {} deleted for user {} (was default {})", addressId, userId, deletedDefault);
 
         if (deletedDefault) {
             pickupRepository.findAllByUser_Id(userId).stream()
@@ -110,6 +125,7 @@ public class PickupServiceImpl implements PickupService {
                     .ifPresent(nextDefault -> {
                         nextDefault.setDefault(true);
                         pickupRepository.save(nextDefault);
+                        Flow.step(LOGGER, "Pickup: address {} is now the default", nextDefault.getId());
                     });
         }
     }
