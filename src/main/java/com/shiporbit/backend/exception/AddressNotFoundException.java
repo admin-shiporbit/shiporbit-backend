@@ -1,8 +1,11 @@
 package com.shiporbit.backend.exception;
 
-public class AddressNotFoundException extends RuntimeException {
+import com.shiporbit.backend.error.ErrorCode;
+
+/** Error code ErrorCode.ADDRESS_NOT_FOUND. */
+public class AddressNotFoundException extends ShipOrbitException {
 
     public AddressNotFoundException(String message) {
-        super(message);
+        super(ErrorCode.ADDRESS_NOT_FOUND, message);
     }
 }

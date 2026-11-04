@@ -9,6 +9,8 @@ public record DelhiveryConfigProperties(
         String routerUrl,
         String loginEndpoint,
         String pincodeEndpoint,
-        String ratecalculatorEndpoint
+        String ratecalculatorEndpoint,
+        String connectTimeoutSeconds,
+        String readTimeoutSeconds
         ) {
 }

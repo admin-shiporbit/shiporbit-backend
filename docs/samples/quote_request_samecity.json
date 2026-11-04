@@ -1,0 +1,32 @@
+{
+  "originPincode": "201301",
+  "destinationPincode": "201301",
+  "direction": "FORWARD",
+  "paymentMode": "COD",
+  "codAmount": 1499.0,
+  "declaredValue": 1499.0,
+  "riskType": "OWNER",
+  "productCategory": "GENERAL",
+  "isDocument": false,
+  "pickupDate": "2026-10-12",
+  "packages": [
+    {
+      "count": 1,
+      "deadWeightKg": 0.8,
+      "lengthCm": 30,
+      "widthCm": 20,
+      "heightCm": 10
+    }
+  ],
+  "addOns": [],
+  "partners": [],
+  "b2b": {
+    "numberOfLRs": 1,
+    "appointmentDelivery": false,
+    "floorDelivery": false
+  },
+  "hyperlocal": {
+    "distanceKm": 12,
+    "vehicle": "BIKE"
+  }
+}

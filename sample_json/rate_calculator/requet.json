@@ -1,0 +1,13 @@
+{
+  "deliveryMode": "Surface",
+  "fromPin": "400001",
+  "toPin": "560001",
+  "weight": "1",
+  "weightUnit": "kg",
+  "length": "10",
+  "width": "10",
+  "height": "10",
+  "dimensionUnit": "cm",
+  "isCOD": true,
+  "orderValue": "1500"
+}

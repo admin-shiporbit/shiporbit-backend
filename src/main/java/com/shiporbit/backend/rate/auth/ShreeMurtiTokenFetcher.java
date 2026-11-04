@@ -1,7 +1,7 @@
 package com.shiporbit.backend.rate.auth;
 
 import com.shiporbit.backend.exception.PartnerApiException;
-import com.shiporbit.backend.rate.routing.ShreeMurtiConfigProperties;
+import com.shiporbit.backend.rate.routing.ShreeMarutiConfigProperties;
 import com.shiporbit.backend.rate.util.CurlLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,12 +41,12 @@ public class ShreeMurtiTokenFetcher implements TokenFetcher {
     private volatile String refreshToken = null;
 
     private final RestClient shreeMurtiClient;
-    private final ShreeMurtiConfigProperties shreeMurtiConfigProperties;
+    private final ShreeMarutiConfigProperties shreeMarutiConfigProperties;
 
     public ShreeMurtiTokenFetcher(RestClient shreeMurtiClient,
-                                   ShreeMurtiConfigProperties shreeMurtiConfigProperties) {
+                                   ShreeMarutiConfigProperties shreeMarutiConfigProperties) {
         this.shreeMurtiClient = shreeMurtiClient;
-        this.shreeMurtiConfigProperties = shreeMurtiConfigProperties;
+        this.shreeMarutiConfigProperties = shreeMarutiConfigProperties;
     }
 
     @Override
@@ -77,18 +77,18 @@ public class ShreeMurtiTokenFetcher implements TokenFetcher {
     private TokenResult doLogin() {
         LOGGER.debug("Performing a full ShreeMurti login");
         Map<String, Object> body = new HashMap<>();
-        body.put("username", shreeMurtiConfigProperties.userName());
-        body.put("password", shreeMurtiConfigProperties.password());
-        body.put("signinType", shreeMurtiConfigProperties.signinType());
+        body.put("username", shreeMarutiConfigProperties.userName());
+        body.put("password", shreeMarutiConfigProperties.password());
+        body.put("signinType", shreeMarutiConfigProperties.signinType());
 
-        String url = shreeMurtiConfigProperties.routerUrl() + shreeMurtiConfigProperties.loginEndPoint();
+        String url = shreeMarutiConfigProperties.routerUrl() + shreeMarutiConfigProperties.loginEndPoint();
         LOGGER.debug("Outgoing ShreeMurti login request:\n{}", CurlLogger.toCurl("POST", url,
                 Map.of("Content-Type", "application/json"),
                 CurlLogger.redact(body, "username", "password")));
         Map response;
         try {
             response = shreeMurtiClient.post()
-                    .uri(shreeMurtiConfigProperties.loginEndPoint())
+                    .uri(shreeMarutiConfigProperties.loginEndPoint())
                     .header("Content-Type", "application/json")
                     .body(body)
                     .retrieve()
@@ -111,15 +111,15 @@ public class ShreeMurtiTokenFetcher implements TokenFetcher {
     private TokenResult doRefresh(String currentRefreshToken) {
         LOGGER.debug("Refreshing ShreeMurti token via refresh_token");
         Map<String, Object> body = new HashMap<>();
-        body.put("user_id", shreeMurtiConfigProperties.userId());
+        body.put("user_id", shreeMarutiConfigProperties.userId());
         body.put("refresh_token", currentRefreshToken);
 
-        String url = shreeMurtiConfigProperties.routerUrl() + shreeMurtiConfigProperties.refreshTokenEndPoint();
+        String url = shreeMarutiConfigProperties.routerUrl() + shreeMarutiConfigProperties.refreshTokenEndPoint();
         LOGGER.debug("Outgoing ShreeMurti refresh request:\n{}", CurlLogger.toCurl("POST", url,
                 Map.of("Content-Type", "application/json"),
                 CurlLogger.redact(body, "refresh_token")));
         Map response = shreeMurtiClient.post()
-                .uri(shreeMurtiConfigProperties.refreshTokenEndPoint())
+                .uri(shreeMarutiConfigProperties.refreshTokenEndPoint())
                 .header("Content-Type", "application/json")
                 .body(body)
                 .retrieve()

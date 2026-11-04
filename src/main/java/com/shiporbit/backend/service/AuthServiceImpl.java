@@ -1,6 +1,10 @@
 package com.shiporbit.backend.service;
 
 import com.shiporbit.backend.dto.SignUpRequest;
+import com.shiporbit.backend.logging.Flow;
+import com.shiporbit.backend.logging.Mask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.shiporbit.backend.dto.UserResponse;
 import com.shiporbit.backend.entity.Role;
 import com.shiporbit.backend.entity.Users;
@@ -22,6 +26,8 @@ import java.util.Locale;
 
 @Service
 public class AuthServiceImpl implements AuthService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthServiceImpl.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -49,6 +55,7 @@ public class AuthServiceImpl implements AuthService {
 
 
         String email = request.email().trim().toLowerCase(Locale.ROOT);
+        Flow.step(LOGGER, "Signup: checking email {}", Mask.email(email));
 
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new EmailAlreadyExistsException("Email "+email+ " is already registered with other user");
@@ -72,6 +79,7 @@ public class AuthServiceImpl implements AuthService {
         user.setFullName(request.fullName().trim());
 
         Users savedUser = userRepository.save(user);
+        Flow.step(LOGGER, "Signup: user saved id={} role={}", savedUser.getId(), requestedRole);
         return new UserResponse(
                 savedUser.getId()
                 , savedUser.getEmail()
@@ -83,6 +91,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
+        Flow.step(LOGGER, "Login: authenticating {}", Mask.email(email));
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, request.password())
         );
@@ -90,6 +99,8 @@ public class AuthServiceImpl implements AuthService {
         ShipOrbitUserPrincipal userDetails =
                 (ShipOrbitUserPrincipal) authentication.getPrincipal();
         String accessToken = jwtService.generateToken(userDetails);
+        Flow.step(LOGGER, "Login: success for user {} - JWT issued, expires in {} s", userDetails.userId(),
+                jwtService.getExpiration() / 1000);
 
         return new AuthResponse(accessToken, "Bearer", jwtService.getExpiration() / 1000);
     }
