@@ -53,6 +53,7 @@ public class SecurityConfig {
                             // Keep all your existing auth APIs public
                             .requestMatchers(
                                     "/api/v1/auth/**",
+                                    "/api/v1/contact/**",          // public website contact form
                                     "/h2-console/**",
                                     "/actuator/health",
                                     "/actuator/health/**",

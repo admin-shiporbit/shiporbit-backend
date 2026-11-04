@@ -12,7 +12,10 @@ public enum NotificationPurpose {
     DELIVERED(2, 4, "Order Delivered"),
     SIGN_UP(1, 2, "Sign Up OTP"),
     PASSWORD_RESET(1, 3, "Password Reset OTP"),
-    WELCOME(3, 1, "Welcome Email");
+    WELCOME(3, 1, "Welcome Email"),
+    // Website contact form (contact.service.ContactService)
+    CONTACT_ACK(4, 1, "We received your request"),
+    CONTACT_TEAM(4, 2, "New contact request");
 
     private final int id;
     private final int requestType;
