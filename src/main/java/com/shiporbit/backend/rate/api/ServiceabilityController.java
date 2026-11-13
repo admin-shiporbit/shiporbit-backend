@@ -5,7 +5,8 @@ import com.shiporbit.backend.rate.dto.request.RequestParamRecord;
 import com.shiporbit.backend.rate.entity.PaymentMode;
 import com.shiporbit.backend.rate.service.DelhiveryB2cRateClient;
 import com.shiporbit.backend.rate.service.DelhiveryPartnerClient;
-import com.shiporbit.backend.rate.service.ShreeMurtiPartnerClient;
+import com.shiporbit.backend.rate.service.EkartPartnerClient;
+import com.shiporbit.backend.rate.service.ShreeMarutiPartnerClient;
 import com.shiporbit.backend.rate.serviceability.Serviceability;
 import com.shiporbit.backend.rate.serviceability.ServiceabilityCheckRequest;
 import com.shiporbit.backend.rate.serviceability.ServiceabilityCheckResponse;
@@ -37,13 +38,15 @@ public class ServiceabilityController {
 
     private final DelhiveryPartnerClient delhivery;
     private final DelhiveryB2cRateClient delhiveryB2c;
-    private final ShreeMurtiPartnerClient shreeMurti;
+    private final ShreeMarutiPartnerClient shreeMaruti;
+    private final EkartPartnerClient ekart;
 
     public ServiceabilityController(DelhiveryPartnerClient delhivery, DelhiveryB2cRateClient delhiveryB2c,
-                                    ShreeMurtiPartnerClient shreeMurti) {
+                                    ShreeMarutiPartnerClient shreeMaruti, EkartPartnerClient ekart) {
         this.delhivery = delhivery;
         this.delhiveryB2c = delhiveryB2c;
-        this.shreeMurti = shreeMurti;
+        this.shreeMaruti = shreeMaruti;
+        this.ekart = ekart;
     }
 
     @PostMapping
@@ -61,13 +64,18 @@ public class ServiceabilityController {
         }
         if (request.wants("SHREE_MARUTI")) {
             try (Flow.Scope s = Flow.begin(LOGGER, "SHREE_MARUTI (ECOMM)")) {
-                results.add(result("SHREE_MARUTI", "ECOMM", shreeMurti.checkServiceability(params)));
+                results.add(result("SHREE_MARUTI", "ECOMM", shreeMaruti.checkServiceability(params)));
             }
             if (request.hyperlocalPickup() != null || request.hyperlocalDrop() != null) {
                 try (Flow.Scope s = Flow.begin(LOGGER, "SHREE_MARUTI (HYPERLOCAL)")) {
-                    results.add(result("SHREE_MARUTI", "HYPERLOCAL", shreeMurti.checkHyperlocal(
+                    results.add(result("SHREE_MARUTI", "HYPERLOCAL", shreeMaruti.checkHyperlocal(
                             request.hyperlocalPickup(), request.hyperlocalDrop(), request.paymentMode() == PaymentMode.COD)));
                 }
+            }
+        }
+        if (request.wants("EKART")) {
+            try (Flow.Scope s = Flow.begin(LOGGER, "EKART (ELITE)")) {
+                results.add(result("EKART", "ELITE", ekart.checkServiceability(params)));
             }
         }
         Flow.step(LOGGER, "Serviceability results: {}", results.stream()

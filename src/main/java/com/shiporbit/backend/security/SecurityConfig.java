@@ -54,6 +54,8 @@ public class SecurityConfig {
                             .requestMatchers(
                                     "/api/v1/auth/**",
                                     "/api/v1/contact/**",          // public website contact form
+                                    "/api/v1/rates/compare",       // public website rate calculator (rate-limited by the UI's server route)
+                                    "/api/v1/pincodes/**",         // public pincode lookup for the website's pincode fields
                                     "/h2-console/**",
                                     "/actuator/health",
                                     "/actuator/health/**",

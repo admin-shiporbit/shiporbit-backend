@@ -45,6 +45,7 @@ public enum ErrorCode {
     PINCODE_EMBARGOED("SO-SVC-005", HttpStatus.UNPROCESSABLE_ENTITY, "Pincode under embargo"),
     SERVICEABILITY_UNCONFIRMED("SO-SVC-006", HttpStatus.BAD_GATEWAY, "Partner serviceability could not be confirmed"),
     HYPERLOCAL_ADDRESS_REQUIRED("SO-SVC-007", HttpStatus.BAD_REQUEST, "Hyperlocal needs address, pincode, latitude and longitude for both ends"),
+    PINCODE_NOT_FOUND("SO-SVC-008", HttpStatus.NOT_FOUND, "Pincode is not in the ShipOrbit pincode list"),
 
     // ---- partner APIs ----
     PARTNER_AUTH_FAILED("SO-PTR-001", HttpStatus.BAD_GATEWAY, "Partner rejected our credentials"),

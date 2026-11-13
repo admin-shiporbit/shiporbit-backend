@@ -20,6 +20,7 @@ public record RateCardSnapshot(
         DataStatus dataStatus,
         WeightRules weightRules,
         BigDecimal maxWeightKg,
+        BigDecimal maxPieceWeightKg,  // null = no per-piece limit
         BigDecimal maxDistanceKm,
         RtoRule rtoRule,
         BigDecimal rtoPercent,

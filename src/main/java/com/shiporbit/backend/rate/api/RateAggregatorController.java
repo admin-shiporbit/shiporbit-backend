@@ -3,7 +3,7 @@ package com.shiporbit.backend.rate.api;
 import com.shiporbit.backend.rate.dto.request.RequestParamRecord;
 import com.shiporbit.backend.rate.dto.response.RateResponse;
 import com.shiporbit.backend.rate.service.RateAggregatorService;
-import com.shiporbit.backend.rate.service.ShreeMurtiPartnerClient;
+import com.shiporbit.backend.rate.service.ShreeMarutiPartnerClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,12 +26,12 @@ public class RateAggregatorController {
     // interface type is ambiguous now that multiple @Component partner clients exist.
     // Everything that should dispatch across all partners goes through
     // RateAggregatorService (which correctly takes List<DeliveryPartnerClient>).
-    private final ShreeMurtiPartnerClient shreeMurtiPartnerClient;
+    private final ShreeMarutiPartnerClient shreeMarutiPartnerClient;
     private final RateAggregatorService rateAggregatorService;
 
     @Autowired
-    public RateAggregatorController(ShreeMurtiPartnerClient shreeMurtiPartnerClient, RateAggregatorService rateAggregatorService) {
-        this.shreeMurtiPartnerClient = shreeMurtiPartnerClient;
+    public RateAggregatorController(ShreeMarutiPartnerClient shreeMarutiPartnerClient, RateAggregatorService rateAggregatorService) {
+        this.shreeMarutiPartnerClient = shreeMarutiPartnerClient;
         this.rateAggregatorService = rateAggregatorService;
     }
 
@@ -47,6 +47,6 @@ public class RateAggregatorController {
     @PostMapping("/validate")
     public void validateAggregatorRequest(){
         LOGGER.info("Initiated ShreeMurti validate check");
-        shreeMurtiPartnerClient.getRate(null);
+        shreeMarutiPartnerClient.getRate(null);
     }
 }

@@ -10,7 +10,7 @@ import java.util.List;
  * @param serviceabilityCarriers           carriers sent in serviceability calls (default [SMILE])
  * @param serviceabilityOperationType      default PICKUP_DELIVERY
  */
-@ConfigurationProperties(prefix = "rate-aggregator.shreemurti")
+@ConfigurationProperties(prefix = "rate-aggregator.shreemaruti")
 public record ShreeMarutiConfigProperties(
         String userName,
         String password,

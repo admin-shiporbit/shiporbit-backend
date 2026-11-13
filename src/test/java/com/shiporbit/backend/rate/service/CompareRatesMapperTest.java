@@ -5,6 +5,7 @@ import com.shiporbit.backend.rate.core.QuoteRequest;
 import com.shiporbit.backend.rate.core.QuoteResult;
 import com.shiporbit.backend.rate.core.SlabInfo;
 import com.shiporbit.backend.rate.dto.request.CompareRatesRequest;
+import com.shiporbit.backend.rate.dto.response.CompareRatesResponse;
 import com.shiporbit.backend.rate.dto.response.CompareRatesResponse.Carrier;
 import com.shiporbit.backend.rate.dto.response.CompareRatesResponse.Fare;
 import com.shiporbit.backend.rate.entity.DataStatus;
@@ -29,6 +30,15 @@ class CompareRatesMapperTest {
 
     private static CompareRatesRequest request(String weight, String weightUnit, String dimUnit, Boolean cod, String orderValue) {
         return new CompareRatesRequest("Surface", "400001", "560001", weight, weightUnit, "10", "10", "10", dimUnit, cod, orderValue);
+    }
+
+    @Test
+    void blankOrZeroOrderValueDeclaresDefault5000ForPrepaid() {
+        assertEquals(new BigDecimal("5000"), CompareRatesMapper.toQuoteRequest(request("31", "kg", "cm", false, "")).declaredValue());
+        assertEquals(new BigDecimal("5000"), CompareRatesMapper.toQuoteRequest(request("31", "kg", "cm", false, null)).declaredValue());
+        assertEquals(new BigDecimal("5000"), CompareRatesMapper.toQuoteRequest(request("31", "kg", "cm", false, "0")).declaredValue());
+        assertEquals(0, CompareRatesMapper.toQuoteRequest(request("31", "kg", "cm", false, "")).codAmount().signum());
+        assertThrows(IllegalArgumentException.class, () -> CompareRatesMapper.toQuoteRequest(request("31", "kg", "cm", true, "")));
     }
 
     @Test
@@ -90,6 +100,29 @@ class CompareRatesMapperTest {
         assertEquals(new BigDecimal("77.88"), fare.shipping());
         assertEquals(fare.total(), fare.shipping().add(fare.cod()));
         assertEquals(new BigDecimal("1"), fare.billable());
+    }
+
+    @Test
+    void breakdownLinesAddUpToTotalWithGstLast() {
+        Fare fare = CompareRatesMapper.fare(AMAZON, BigDecimal.ONE);
+        BigDecimal sum = fare.breakdown().stream().map(CompareRatesResponse.FareLine::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertEquals(0, fare.total().compareTo(sum), "lines must add up to total");
+        assertEquals("GST", fare.breakdown().get(fare.breakdown().size() - 1).code());
+        assertEquals("Freight", fare.breakdown().get(0).label());
+        assertTrue(fare.breakdown().stream().noneMatch(l -> l.code().equals("MARGIN")));
+    }
+
+    @Test
+    void dimensionsAreOptionalAndDecimalsRounded() {
+        QuoteRequest q = CompareRatesMapper.toQuoteRequest(new CompareRatesRequest("Surface", "400001", "560001",
+                "1.23456", "kg", "", "10", "0", "cm", false, ""));
+        var box = q.packages().get(0);
+        assertEquals(0, new BigDecimal("1.235").compareTo(box.deadWeightKg()));
+        assertEquals(0, BigDecimal.ONE.compareTo(box.lengthCm()));                 // no dimensions -> 1 x 1 x 1
+        assertEquals(0, BigDecimal.ONE.compareTo(box.heightCm()));
+        var w = CompareRatesMapper.displayWeights(q);
+        assertEquals(0, new BigDecimal("1.235").compareTo(w.chargeableWeightKg()));
     }
 
     @Test

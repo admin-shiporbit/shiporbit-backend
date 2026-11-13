@@ -6,10 +6,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
 
 @Configuration
-public class ShreeMurtiClientConfig {
+public class ShreeMarutiClientConfig {
 
     @Bean
-    public RestClient shreeMurtiClient(RestClient.Builder restClient,
+    public RestClient shreeMarutiClient(RestClient.Builder restClient,
                                       ShreeMarutiConfigProperties shreeMarutiConfigProperties) {
         return restClient.baseUrl(shreeMarutiConfigProperties.routerUrl()).build();
     }

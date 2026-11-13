@@ -11,4 +11,7 @@ public interface PartnerPincodeRepository extends JpaRepository<PartnerPincodeEn
 
     // Origin + destination for ALL partners in one query
     List<PartnerPincodeEntity> findByIdPincodeIn(Collection<String> pincodes);
+
+    // One pincode, every partner (GET /api/v1/pincodes/{pincode}); uses SO_IDX_PARTNER_PINCODE_PIN
+    List<PartnerPincodeEntity> findByIdPincode(String pincode);
 }

@@ -64,6 +64,8 @@ application-secret*.properties
 logs/
 tmp/
 temp/
+tools/
+docs/
 
 ######################
 ## Docs / scripts / data files (kept local, not committed)

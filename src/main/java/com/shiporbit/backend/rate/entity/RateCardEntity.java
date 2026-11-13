@@ -54,6 +54,10 @@ public class RateCardEntity {
     @Column(name = "MAX_WEIGHT_KG", nullable = false, precision = 10, scale = 3)
     private BigDecimal maxWeightKg;
 
+    /** Heaviest single piece (dead weight) the partner takes; null = no per-piece limit (V16). */
+    @Column(name = "MAX_PIECE_WEIGHT_KG", precision = 10, scale = 3)
+    private BigDecimal maxPieceWeightKg;
+
     @Column(name = "MAX_DISTANCE_KM", precision = 10, scale = 2)
     private BigDecimal maxDistanceKm;                 // HYPERLOCAL only
 

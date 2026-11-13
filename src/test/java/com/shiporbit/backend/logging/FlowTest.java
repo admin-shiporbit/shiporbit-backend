@@ -31,7 +31,7 @@ class FlowTest {
             assertEquals("3", Flow.currentStep());
             assertEquals("3", MDC.get(Flow.MDC_STEP));
             Flow.Branch a = Flow.branch(LOG, "Delhivery");                  // 3a
-            Flow.Branch b = Flow.branch(LOG, "ShreeMurti");                 // 3b
+            Flow.Branch b = Flow.branch(LOG, "ShreeMaruti");                 // 3b
             assertEquals("3a", a.label());
             assertEquals("3b", b.label());
             try (ExecutorService ex = Executors.newVirtualThreadPerTaskExecutor()) {

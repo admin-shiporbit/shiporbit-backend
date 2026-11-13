@@ -56,9 +56,15 @@ public record CompareRatesResponse(
                           BigDecimal baseRate, BigDecimal perKg, BigDecimal codFlat, BigDecimal codPct,
                           List<Integer> etd, BigDecimal rating, BigDecimal maxKg) { }
 
-    /** shipping + cod = total; gst is included in total. billable = chargeable kg used by this partner. */
+    /**
+     * shipping + cod = total; gst is included in total. billable = chargeable kg used by this partner.
+     * breakdown: lines to show the customer; they add up exactly to total (last line is GST).
+     */
     public record Fare(BigDecimal shipping, BigDecimal cod, BigDecimal gst, BigDecimal total,
-                       BigDecimal billable, BigDecimal distanceKm) { }
+                       BigDecimal billable, BigDecimal distanceKm, List<FareLine> breakdown) { }
+
+    /** One price line, e.g. {code: FUEL_SURCHARGE, label: "Fuel surcharge", amount: 12.40}. Margin is spread into the lines. */
+    public record FareLine(String code, String label, BigDecimal amount) { }
 
     /** errorCode: ErrorCode.code(), e.g. SO-SVC-001 (see com.shiporbit.backend.error.ErrorCode). */
     public record Unavailable(String name, String service, QuoteStatus status, String errorCode, String reason) { }

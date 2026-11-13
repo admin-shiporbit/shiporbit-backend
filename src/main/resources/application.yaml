@@ -85,7 +85,7 @@ rate-aggregator:
   delhivery:
     username: ${DELHIVERY_USERNAME}
     password: ${DELHIVERY_PASSWORD}
-    router-url: https://ltl-clients-api-dev.delhivery.com
+    router-url: https://ltl-clients-api.delhivery.com
     login-endpoint: /ums/login
     pincode-endpoint: /pincode-service
     ratecalculator-endpoint: /freight/estimate
@@ -102,19 +102,33 @@ rate-aggregator:
     max-weight-kg: 20
     volumetric-divisor: 5000   # cgm = max(dead, LxWxH/divisor) - confirm divisor with Delhivery
     pincode-endpoint: /c/api/pin-codes/json/   # B2C serviceability: ?filter_codes=<pin>
-  shreemurti:
-    username: ${SHREEMURTI_USERNAME}
-    password: ${SHREEMURTI_PASSWORD}
+  shreemaruti:
+    username: ${SHREEMARUTI_USERNAME}
+    password: ${SHREEMARUTI_PASSWORD}
     router-url: https://apis.innofulfill.com
     login-endpoint: /auth/login
     ratecalculator-endpoint: /gateway/ure/api/external/rate-calculation/calculate/v2
     signin-type: EMAIL
-    api-key: ${SHREEMURTI_API_KEY}
+    api-key: ${SHREEMARUTI_API_KEY}
     # Serviceability APIs use the same auth as the rate API: Bearer id_token + tenantid (no api-key).
     serviceability-ecomm-endpoint: /gateway/serviceability/ecomm
     serviceability-hyperlocal-endpoint: /gateway/serviceability/hyperlocal
     serviceability-carriers: [SMILE]
     serviceability-operation-type: PICKUP_DELIVERY
+  # Ekart Elite live API (partner 10). Docs: https://app.elite.ekartlogistics.in/api/docs
+  ekart:
+    username: ${EKART_USERNAME:}
+    password: ${EKART_PASSWORD:}
+    client-id: ${EKART_CLIENT_ID:}
+    router-url: ${EKART_BASE_URL:https://app.elite.ekartlogistics.in}
+    login-endpoint: /integrations/v2/auth/token/{clientId}      # POST {username, password} -> access_token (24 h)
+    serviceability-endpoint: /api/v2/serviceability/{pincode}   # GET, one pincode
+    rate-endpoint: /data/pricing/estimate                         # POST estimate
+    # Required by the estimate API but not documented - confirm the value with Ekart (sent only when set).
+    billing-client-type: ${EKART_BILLING_CLIENT_TYPE:}
+    shipping-direction: FORWARD
+    connect-timeout-seconds: 2
+    read-timeout-seconds: 6
   ups:
     # Leave client id/secret empty to disable UPS (it's then skipped as not serviceable).
     client-id: ${UPS_CLIENT_ID:}
@@ -165,9 +179,14 @@ shiporbit:
     # no rate-card price, not shown). Names = SO_DELIVERY_PARTNER_LIST.PARTNER_NAME:
     # DELHIVERY, BLUEDART, DTDC, AMAZON_SHIPPING, BORZO, INDIA_POST, RIVIGO, SHADOWFAX, TCI, EKART,
     # PIKNDEL, SAFEXPRESS, SHREE_MARUTI, XPRESSBEES. A name in neither list is not quoted.
-    enabled: [DELHIVERY, BLUEDART, DTDC, AMAZON_SHIPPING, BORZO, INDIA_POST, RIVIGO, SHADOWFAX, TCI, EKART, PIKNDEL, SAFEXPRESS, SHREE_MARUTI, XPRESSBEES]
-    disabled: []
+    # 2026-11-09: only partners with verified contract data (or a live API) are on.
+    # Off = sample-only data (V8) or no confirmed rate card - see claude/rate-calculator-backlog.md (BL-3).
+    enabled: [DELHIVERY, SHREE_MARUTI, AMAZON_SHIPPING, EKART, PIKNDEL, XPRESSBEES]
+    disabled: [BLUEDART, DTDC, BORZO, INDIA_POST, RIVIGO, SHADOWFAX, SAFEXPRESS, TCI]
     # Carrier display data for POST /api/v1/rates/compare. Keys = SO_DELIVERY_PARTNER_LIST.ID.
+    # ETD and rating (parked until real figures exist) - add per partner, no code change needed, e.g.
+    #   4: { display-name: Amazon Shipping, initials: AS, color: "#ff9900", rating: 4.3, etd-min-days: 2, etd-max-days: 4 }
+    # Missing -> carrier.etd / carrier.rating are null; the UI shows "-" and sorts unknown ETD last.
     # display-name / initials default from the DB name when missing. rating (0-5) and
     # etd-min-days / etd-max-days are left out until real figures are known: they are returned
     # as null, and "sort by delivery speed" stays disabled until every partner shown has an ETD.
